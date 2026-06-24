@@ -4,7 +4,10 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_NAME="${REPO_NAME:-glm_ocr}"
-SSH_KEY="${SSH_KEY:-/root/.ssh/id_ed25519}"
+SSH_KEY="${SSH_KEY:-/root/.ssh/id_ed25519_wilson}"
+if [[ ! -f "$SSH_KEY" ]]; then
+  SSH_KEY="/root/.ssh/id_ed25519"
+fi
 GIT_SSH_COMMAND="ssh -i ${SSH_KEY} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
 
 cd "$PROJECT_ROOT"
