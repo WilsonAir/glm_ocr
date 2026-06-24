@@ -5,8 +5,10 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 
-# OCR outputs
-result/
+# OCR outputs (keep markdown samples only)
+result/**
+!result/**/
+!result/**/*.md
 logs/
 *.log
 
