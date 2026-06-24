@@ -1,0 +1,2730 @@
+{
+  "pdf": "/data/wilson_2/de/medical_paper_catalog/sample_pdfs/aml_nccn.pdf",
+  "model": "glm-ocr",
+  "api_base": "http://127.0.0.1:18080/v1",
+  "prompt": "Text Recognition:",
+  "dpi": 150,
+  "page_count": 209,
+  "result_dir": "/data/wilson_2/de/glm_ocr/result/model_only",
+  "markdown": "/data/wilson_2/de/glm_ocr/result/model_only/aml_nccn.md",
+  "pages": [
+    {
+      "page": 1,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_001.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_001.txt",
+      "elapsed_sec": 0.56,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 2820,
+        "completion_tokens": 94,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Clinical Practice Guidelines in Oncology (NCCN Guidelines®)\n\nAcute Myeloid Leukemia\n\nVersion 3.2026 — November 24, 2025\n\nNCCN recognizes the importance of clinical trials and encourages participa"
+    },
+    {
+      "page": 2,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_002.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_002.txt",
+      "elapsed_sec": 1.87,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3666,
+        "completion_tokens": 940,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nAcute Myeloid Leukemia (Age ≥18 years)\n\n*Daniel A. Pollyea, MD, MS/Chair †\nUniversity of Colorado Cancer Center\n\n*Jessica K. Altman, MD/Vice Chair †\nRobert H. Lurie Comp"
+    },
+    {
+      "page": 3,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_003.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_003.txt",
+      "elapsed_sec": 1.63,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3500,
+        "completion_tokens": 774,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nAcute Myeloid Leukemia (Age ≥18 years)\n\nNCCN Acute Myeloid Leukemia Panel Members\nSummary of the Guidelines Updates\nEvaluation for AML (EVAL-1)\n\nAPL\n• Classification and"
+    },
+    {
+      "page": 4,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_004.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_004.txt",
+      "elapsed_sec": 1.95,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3721,
+        "completion_tokens": 995,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Updates in Version 3.2026 of the NCCN Guidelines for Acute Myeloid Leukemia include:\n\nAML-9\n• Therapy For Relapsed/Refractory Disease\n  ► Targeted therapy: Therapy for AML with NPM1 mutation, ziftomen"
+    },
+    {
+      "page": 5,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_005.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_005.txt",
+      "elapsed_sec": 2.26,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3888,
+        "completion_tokens": 1162,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Updates in Version 1.2026 of the NCCN Guidelines for Acute Myeloid Leukemia include:\n\n**EVAL-2**\n• Diagnosis\n  ▶ AML\n    ◀ 1st bullet modified: For patients with hyperleukocytosis uncontrolled with hy"
+    },
+    {
+      "page": 6,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_006.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_006.txt",
+      "elapsed_sec": 2.4,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3999,
+        "completion_tokens": 1273,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Updates in Version 1.2026 of the NCCN Guidelines for Acute Myeloid Leukemia include:\n\nAML-2\n• Intensive Induction Eligible\n  ▶ Poor/Adverse-Risk Groups\n    ◇ 1st pathway\n    – 3rd bullet modified: Cyt"
+    },
+    {
+      "page": 7,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_007.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_007.txt",
+      "elapsed_sec": 1.97,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3732,
+        "completion_tokens": 1006,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Updates in Version 1.2026 of the NCCN Guidelines for Acute Myeloid Leukemia include:\n\nAML-3A\n• Footnote s added: Venetoclax combination regimens may be continued for patients whose disease demonstrate"
+    },
+    {
+      "page": 8,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_008.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_008.txt",
+      "elapsed_sec": 1.96,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3688,
+        "completion_tokens": 962,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Updates in Version 1.2026 of the NCCN Guidelines for Acute Myeloid Leukemia include:\n\nAML-E 1 OF 14\n• Principles of Systemic Therapy For AML. Intensive Induction Eligible\n  ▶ Regimen removed: Standard"
+    },
+    {
+      "page": 9,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_009.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_009.txt",
+      "elapsed_sec": 2.13,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3827,
+        "completion_tokens": 1101,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Updates in Version 1.2026 of the NCCN Guidelines for Acute Myeloid Leukemia include:\n\nAML-H 1 OF 4\n• Measurable (Minimal) Residual Disease Assessment\n  ▶ The following bullets were moved from Methods "
+    },
+    {
+      "page": 10,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_010.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_010.txt",
+      "elapsed_sec": 1.7,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3553,
+        "completion_tokens": 827,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Updates in Version 1.2026 of the NCCN Guidelines for Acute Myeloid Leukemia include:\n\nAML-J 1 OF 4\n• Principles of Venetoclax Use With HMA or LDAC\n  ▶ General, 5th bullet modified: Drug-drug interacti"
+    },
+    {
+      "page": 11,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_011.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_011.txt",
+      "elapsed_sec": 1.32,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3316,
+        "completion_tokens": 590,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "EVALUATION FOR AML$^a$\n\n• History and physical (H&P)\n• Complete blood count (CBC), platelets, differential, comprehensive metabolic panel (CMP), uric acid, lactate dehydrogenase (LDH)\n• B12 and folic "
+    },
+    {
+      "page": 12,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_012.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_012.txt",
+      "elapsed_sec": 1.03,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3109,
+        "completion_tokens": 383,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nAcute Myeloid Leukemia (Age ≥18 years)\n\nDIAGNOSTIC STUDIES\n\nDiagnosise,f,g,2,3\n\nAcute promyelocytic leukemia (APL):\nIn patients with clinical or pathologic features of A"
+    },
+    {
+      "page": 13,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_013.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_013.txt",
+      "elapsed_sec": 2.52,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4083,
+        "completion_tokens": 1357,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "FOOTNOTES FOR EVALUATION FOR AML\n\na Refer to the NCCN Distress Thermometer and Problem List, which includes social determinants of health. See NCCN Guidelines for Distress Management (DIS-A).\n\nb A var"
+    },
+    {
+      "page": 14,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_014.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_014.txt",
+      "elapsed_sec": 0.81,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 2990,
+        "completion_tokens": 264,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "APL CLASSIFICATION AND TREATMENT RECOMMENDATIONS\n\nLow risk (white blood cell [WBC] count ≤10 x 10^9/L)\n\nTreatment Induction (APL-2)\n\nConfirmed APL^{a,b}\n\nHigh risk (WBC count >10 x 10^9/L)\n\nNo cardiac"
+    },
+    {
+      "page": 15,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_015.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_015.txt",
+      "elapsed_sec": 1.72,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3551,
+        "completion_tokens": 825,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "APL TREATMENT INDUCTION (LOW RISK)b,c,d,e\n\nCONSOLIDATION THERAPYi,k\n\nSee references (APL-7) and APL-B 1 of 6 for details on regimens\n\nPreferred Regimens\n\nATRA + daily arsenic trioxidef,g,1\n(category 1"
+    },
+    {
+      "page": 16,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_016.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_016.txt",
+      "elapsed_sec": 1.71,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3563,
+        "completion_tokens": 837,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "APL TREATMENT INDUCTION (HIGH RISK)b,c,d,e,l,m\n(For patients with cardiac issues, see APL-4)\nSee references (APL-7), APL-B 2 of 6, and APL-B 3 of 6 for details on regimens\n\nPreferred Regimens\n\nATRA + "
+    },
+    {
+      "page": 17,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_017.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_017.txt",
+      "elapsed_sec": 1.68,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3519,
+        "completion_tokens": 793,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "APL TREATMENT INDUCTION (HIGH RISK)b,c,d,e,m\nIN PATIENTS WITH CARDIAC ISSUES\n(For patients without cardiac issues, see APL-3)\nSee references (APL-7) and APL-B 4 of 6 for details on regimens\n\nLow EF\n\nA"
+    },
+    {
+      "page": 18,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_018.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_018.txt",
+      "elapsed_sec": 0.89,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3020,
+        "completion_tokens": 294,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "n PCR should be performed on a blood sample at completion of consolidation to document molecular remission. Prior practice guidelines have recommended monitoring blood by PCR every 3 mo for 2 y to det"
+    },
+    {
+      "page": 19,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_019.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_019.txt",
+      "elapsed_sec": 1.32,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3312,
+        "completion_tokens": 586,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nAcute Promyelocytic Leukemia (Age ≥18 years)\n\nAPL\nTHERAPY FOR RELAPSE\nSee references (APL-7) and APL-B 5 of 6 for details on regimens\n\nFirst relapse (morphologic or mole"
+    },
+    {
+      "page": 20,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_020.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_020.txt",
+      "elapsed_sec": 2.01,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3731,
+        "completion_tokens": 1005,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "REFERENCES\n\n1 Lo-Coco F, Avvisati G, Vignetti M, et al. Retinoic acid and arsenic trioxide for acute promyelocytic leukemia. N Engl J Med 2013;369:111-121.\n\n2 Burnett AK, Russell NH, Hills RK, et al. "
+    },
+    {
+      "page": 21,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_021.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_021.txt",
+      "elapsed_sec": 2.01,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3756,
+        "completion_tokens": 1030,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SUPPORTIVE CARE FOR APL\n\nThere are variations among institutions, but the following issues are important to consider in the management of APL.\n\n• Early mortality is related to bleeding, "
+    },
+    {
+      "page": 22,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_022.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_022.txt",
+      "elapsed_sec": 2.19,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3873,
+        "completion_tokens": 1147,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR APL\nAPL TREATMENT INDUCTION (LOW RISK)$^{a,b}$ (APL-2)\n\nPreferred Regimens\n\n| Therapy | Induction | Consolidation |\n| :--- | :--- | :--- |\n| $ATRA + daily arsenic tr"
+    },
+    {
+      "page": 23,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_023.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_023.txt",
+      "elapsed_sec": 2.14,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3840,
+        "completion_tokens": 1114,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR APL\n\nAPL TREATMENT INDUCTION (HIGH RISK)a,b (APL-3)\n(For patients with cardiac issues, see APL-B 4 of 6)\n\nPreferred Regimens\n\nTherapy Induction Consolidation\n\nATRA +"
+    },
+    {
+      "page": 24,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_024.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_024.txt",
+      "elapsed_sec": 1.98,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3729,
+        "completion_tokens": 1003,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR APL\n\nAPL TREATMENT INDUCTION (HIGH RISK)a,b (APL-3)\n\n(For patients with cardiac issues, see APL-B 4 of 6)\n\nUseful in Certain Circumstances (if arsenic is not availab"
+    },
+    {
+      "page": 25,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_025.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_025.txt",
+      "elapsed_sec": 2.61,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4100,
+        "completion_tokens": 1374,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR APL\n\nAPL TREATMENT INDUCTION (HIGH RISK) IN PATIENTS WITH CARDIAC ISSUES\\textsuperscript{a,b} (APL-4)\n\nLow EF\n\nTherapy Induction Consolidation\n\nATRA + daily arsenic "
+    },
+    {
+      "page": 26,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_026.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_026.txt",
+      "elapsed_sec": 1.03,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3127,
+        "completion_tokens": 401,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR APL\n\nFOOTNOTES FOR APL TREATMENT INDUCTION (HIGH RISK) IN PATIENTS WITH CARDIAC ISSUES\n\na Data suggest that lower doses of ATRA (25 mg/m²) in divided doses until cli"
+    },
+    {
+      "page": 27,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_027.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_027.txt",
+      "elapsed_sec": 1.34,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3308,
+        "completion_tokens": 582,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR APL\n\nTHERAPY FOR RELAPSE$^b$ (APL-6)\n\n| Therapy | Regimen |\n| :--- | :--- |\n| Gemtuzumab ozogamicin$^9$ | 6 mg/m$^2$ IV for a maximum of 6 doses |\n| Arsenic trioxide"
+    },
+    {
+      "page": 28,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_028.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_028.txt",
+      "elapsed_sec": 1.64,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3523,
+        "completion_tokens": 797,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "REFERENCES FOR PRINCIPLES OF SYSTEMIC THERAPY FOR APL\n\n1 Lo-Coco F, Avvisati G, Vignetti M, et al. Retinoic acid and arsenic trioxide for acute promyelocytic leukemia. N Engl J Med 2013;369:111-121.\n\n"
+    },
+    {
+      "page": 29,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_029.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_029.txt",
+      "elapsed_sec": 1.48,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3426,
+        "completion_tokens": 700,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nAcute Myeloid Leukemia (Age ≥18 years)\n\nINTENSIVE INDUCTION ELIGIBLE\n\nFAVORABLE/INTERMEDIATE-RISK GROUPS (AML-A)\n\nTREATMENT INDUCTION$^{e,f,g,h,i}$\n\nPreferred:\n• Standar"
+    },
+    {
+      "page": 30,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_030.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_030.txt",
+      "elapsed_sec": 1.46,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3400,
+        "completion_tokens": 674,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nAcute Myeloid Leukemia (Age ≥18 years)\n\nINTENSIVE INDUCTION ELIGIBLE\n\nPOOR/ADVERSE-RISK GROUPS (AML-A)\n\n• Therapy-related AML other than CBF-AML\n• Antecedent MDS/chronic"
+    },
+    {
+      "page": 31,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_031.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_031.txt",
+      "elapsed_sec": 3.47,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4550,
+        "completion_tokens": 1824,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "FOOTNOTES FOR INTENSIVE INDUCTION ELIGIBLE\n\na Patients with elevated blast counts are at risk for tumor lysis and organ dysfunction secondary to leukostasis. Measures to rapidly reduce the WBC count i"
+    },
+    {
+      "page": 32,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_032.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_032.txt",
+      "elapsed_sec": 1.27,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3281,
+        "completion_tokens": 555,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "FOLLOW-UP AND REINDUCTION AFTER CYTARABINE-BASED INDUCTION$^{i,v}$\n\nRE-INDUCTION\n\n• Cytarabine\n• Standard 7 + 3 (daunorubicin or idarubicin)$^z$\n• 5 + 2 [(daunorubicin or idarubicin) or (mitoxantrone "
+    },
+    {
+      "page": 33,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_033.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_033.txt",
+      "elapsed_sec": 1.39,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3344,
+        "completion_tokens": 618,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "FOOTNOTES FOR FOLLOW-UP AND REINDUCTION AFTER CYTARABINE-BASED INDUCTION\n\nf Monitoring During Therapy (AML-G).\ni Principles of Systemic Therapy for AML (AML-E).\ns Venetoclax combination regimens may b"
+    },
+    {
+      "page": 34,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_034.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_034.txt",
+      "elapsed_sec": 1.4,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3366,
+        "completion_tokens": 640,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nAcute Myeloid Leukemia (Age ≥18 years)\n\nLOWER INTENSITY THERAPY (INTENSIVE INDUCTION INELIGIBLE OR DECLINES)\n\nRISK GROUPS\n\nAML with IDH1 mutation\n\nNot a candidate for in"
+    },
+    {
+      "page": 35,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_035.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_035.txt",
+      "elapsed_sec": 2.38,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3969,
+        "completion_tokens": 1243,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "FOOTNOTES FOR LOWER INTENSITY THERAPY (INTENSIVE INDUCTION INELIGIBLE OR DECLINES)\n\na Patients with elevated blast counts are at risk for tumor lysis and organ dysfunction secondary to leukostasis. Me"
+    },
+    {
+      "page": 36,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_036.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_036.txt",
+      "elapsed_sec": 0.79,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 2973,
+        "completion_tokens": 247,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "FOLLOW-UP AFTER INDUCTION THERAPY WITH LOWER INTENSITY THERAPY (INTENSIVE INDUCTION INELIGIBLE OR DECLINES)ᵃ\n\nResponse (Response criteria, see AML-I)\n\n• Allogeneic HCTᵏ\n• Continue on lower intensity r"
+    },
+    {
+      "page": 37,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_037.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_037.txt",
+      "elapsed_sec": 1.61,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3494,
+        "completion_tokens": 768,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nAcute Myeloid Leukemia (Age ≥18 years)\n\nCONSOLIDATION THERAPY$^{ijj,kk}$\n(AML-A)\n\nRISK GROUP\n$^{d,ll}$\nFavorable-risk AML by cytogenetics (CBF-AML) or by molecular mutat"
+    },
+    {
+      "page": 38,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_038.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_038.txt",
+      "elapsed_sec": 2.2,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3874,
+        "completion_tokens": 1148,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "FOOTNOTES FOR CONSOLIDATION THERAPY (INTENSIVE INDUCTION ELIGIBLE)\n\nd In-frame bZIP mutations in CEBPA are more predictive of favorable outcomes than double mutations. Taube F, et al. Blood 2022;139:8"
+    },
+    {
+      "page": 39,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_039.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_039.txt",
+      "elapsed_sec": 1.36,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3332,
+        "completion_tokens": 606,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "MAINTENANCE THERAPY\n\nPost Chemotherapy\n\n• Patient with non–CBF-AML:\n  ► Received prior intensive chemotherapy and disease is now in remission\n  ► Completed no consolidation or some consolidation\n  ► N"
+    },
+    {
+      "page": 40,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_040.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_040.txt",
+      "elapsed_sec": 1.08,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3155,
+        "completion_tokens": 429,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "AML SURVEILLANCE AND THERAPY FOR RELAPSED/REFRACTORY DISEASE (AFTER COMPLETION OF CONSOLIDATION)\n\n• CBC, platelets every 1–3 mo for 2 y, then every 3–6 mo up to 5 y\n• BM aspirate and biopsy only if pe"
+    },
+    {
+      "page": 41,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_041.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_041.txt",
+      "elapsed_sec": 1.71,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3563,
+        "completion_tokens": 837,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "THERAPY FOR RELAPSED/REFRACTORY DISEASE\n\nClinical trial\n\nTargeted therapy\n\n• Therapy for AML with FLT3-ITD mutation\n  ▶ Gilteritinib (category 1)\n  ▶ HMAs (azacitidine or decitabine) + sorafenib\n  ▶ Q"
+    },
+    {
+      "page": 42,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_042.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_042.txt",
+      "elapsed_sec": 2.16,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3832,
+        "completion_tokens": 1106,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "ELN RISK STRATIFICATION BY BIOLOGICAL DISEASE FACTORS FOR PATIENTS WITH NON-APL AML TREATED WITH INTENSIVE INDUCTION CHEMOTHERAPY\n\nRisk Category$^{a,b}$ Genetic Abnormality\n\nFavorable\n$$t(8;21)(q22;q2"
+    },
+    {
+      "page": 43,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_043.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_043.txt",
+      "elapsed_sec": 1.41,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3350,
+        "completion_tokens": 624,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "EVALUATION AND TREATMENT OF CNS LEUKEMIA\n\nNegative → Observe and repeat LP if symptoms persist\n\nNegative mass effect → LPᵃ\n\nPositive by morphology or immunotype by flow cytometryᵃ\n\nIT chemotherapyᵃ 2x"
+    },
+    {
+      "page": 44,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_044.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_044.txt",
+      "elapsed_sec": 0.91,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3014,
+        "completion_tokens": 288,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF RADIATION THERAPY\n\nGeneral Principles\n• Patients who present with isolated extramedullary disease (myeloid sarcoma) or leukemia cutis should be treated with systemic therapy. Local thera"
+    },
+    {
+      "page": 45,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_045.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_045.txt",
+      "elapsed_sec": 2.06,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3718,
+        "completion_tokens": 992,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "GENERAL CONSIDERATIONS AND SUPPORTIVE CARE FOR PATIENTS WITH AML\nWHO PREFER NOT TO RECEIVE BLOOD TRANSFUSIONS\n\nGeneral Supportive Care\n• There is no established treatment of AML that does not require "
+    },
+    {
+      "page": 46,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_046.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_046.txt",
+      "elapsed_sec": 2.15,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3781,
+        "completion_tokens": 1055,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nAcute Myeloid Leukemia (Age ≥18 years)\n\nPRINCIPLES OF SYSTEMIC THERAPY FOR AML\\textsuperscript{a,b}\nINTENSIVE INDUCTION ELIGIBLE (AML-1, AML-2)\n\nTherapy Regimen\n\nStandar"
+    },
+    {
+      "page": 47,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_047.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_047.txt",
+      "elapsed_sec": 1.28,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3287,
+        "completion_tokens": 561,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR AML\nINTENSIVE INDUCTION ELIGIBLE\nFOOTNOTES\n\na An FDA-approved biosimilar is an appropriate substitute for any recommended systemic biologic therapy in the NCCN Guide"
+    },
+    {
+      "page": 48,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_048.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_048.txt",
+      "elapsed_sec": 1.75,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3585,
+        "completion_tokens": 859,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR AML$^{a,b}$\nINTENSIVE INDUCTION ELIGIBLE (AML-1, AML-2)\n\nTherapy Regimen\n\nCPX-351/dual-drug liposomal cytarabine and daunorubicin$^{18}$\nCPX-351/dual-drug liposomal "
+    },
+    {
+      "page": 49,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_049.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_049.txt",
+      "elapsed_sec": 2.13,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3839,
+        "completion_tokens": 1113,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR AML$^{a,b}$\nREINDUCTION IN THE SETTING OF RESIDUAL DISEASE AFTER CYTARABINE-BASED INDUCTION (AML-3)\n\nTherapy Regimen\n\nCytarabine$^l$\n• HiDAC$^h$\n• Intermediate-dose "
+    },
+    {
+      "page": 50,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_050.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_050.txt",
+      "elapsed_sec": 1.13,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3182,
+        "completion_tokens": 456,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR AML\nREINDUCTION IN THE SETTING OF RESIDUAL DISEASE AFTER CYTARABINE-BASED INDUCTION\nFOOTNOTES\n\na An FDA-approved biosimilar is an appropriate substitute for any reco"
+    },
+    {
+      "page": 51,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_051.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_051.txt",
+      "elapsed_sec": 2.23,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3880,
+        "completion_tokens": 1154,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR AML$^{a,b}$\nLOWER INTENSITY THERAPY (INTENSIVE INDUCTION INELIGIBLE OR DECLINES)\n(AML-4)\n\nTherapy Regimen\n\nAzacitidine + venetoclax$^{i,j,20,23}$ Azacitidine 75 mg/m"
+    },
+    {
+      "page": 52,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_052.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_052.txt",
+      "elapsed_sec": 1.57,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3470,
+        "completion_tokens": 744,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR AML$^{a,b}$\nLOWER INTENSITY THERAPY (INTENSIVE INDUCTION INELIGIBLE OR DECLINES) (AML-4)\n\nTherapy Regimen\n\nLDAC + glasdegib$^{r,38}$\nLDAC 20 mg SC every 12 hours (da"
+    },
+    {
+      "page": 53,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_053.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_053.txt",
+      "elapsed_sec": 2.36,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3981,
+        "completion_tokens": 1255,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR AML$^{a,b}$\n\nCONSOLIDATION THERAPY: INTENSIVE INDUCTION ELIGIBLE (AML-6)\n\nTherapy Regimen\n\nCytarabine$^{s,t,43}$\n• HiDAC\n• Intermediate-dose cytarabine\n\n• Cytarabine"
+    },
+    {
+      "page": 54,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_054.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_054.txt",
+      "elapsed_sec": 1.0,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3107,
+        "completion_tokens": 381,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR AML\nCONSOLIDATION THERAPY: INTENSIVE INDUCTION ELIGIBLE\nFOOTNOTES\n\na An FDA-approved biosimilar is an appropriate substitute for any recommended systemic biologic th"
+    },
+    {
+      "page": 55,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_055.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_055.txt",
+      "elapsed_sec": 1.5,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3413,
+        "completion_tokens": 687,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR AML$^{a,b}$\nMAINTENANCE THERAPY\n(AML-7)\n\nTherapy Regimen\n$Oral azacitidine^{44,45}$ 300 mg PO daily on days 1–14 of each 28-day cycle\n$Azacitidine^{46}$ 50 mg/m$^2$ "
+    },
+    {
+      "page": 56,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_056.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_056.txt",
+      "elapsed_sec": 2.07,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3749,
+        "completion_tokens": 1023,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR AML$^{a,b}$\nTHERAPY FOR RELAPSED/REFRACTORY DISEASE\n(AML-9)\nTARGETED THERAPY\n\nTherapy | Regimen\n------- | -------\nGilteritinib (FLT3-ITD or TKD)$^{54}$ | 120 mg PO o"
+    },
+    {
+      "page": 57,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_057.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_057.txt",
+      "elapsed_sec": 3.09,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4118,
+        "completion_tokens": 1392,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR AML$^{a,b}$\nTHERAPY FOR RELAPSED/REFRACTORY DISEASE\n(AML-9)\nINTENSIVE THERAPY FOR APPROPRIATE PATIENTS\n\nTherapy | Regimen\n------- | -------\nCladribine + cytarabine +"
+    },
+    {
+      "page": 58,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_058.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_058.txt",
+      "elapsed_sec": 1.2,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3245,
+        "completion_tokens": 519,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SYSTEMIC THERAPY FOR AML$^{a,b}$\nTHERAPY FOR RELAPSED/REFRACTORY DISEASE\n(AML-9)\n\nLESS INTENSIVE THERAPY\n\nTherapy Regimen\n\nAzacitidine or decitabine Azacitidine 75 mg/m$^2$ SC or IV on d"
+    },
+    {
+      "page": 59,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_059.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_059.txt",
+      "elapsed_sec": 3.44,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4560,
+        "completion_tokens": 1834,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "REFERENCES FOR PRINCIPLES OF SYSTEMIC THERAPY FOR AML\n\n1 Burnett AK, Hills RK, Milligan D, et al. Identification of patients with acute myeloblastic leukemia who benefit from the addition of gemtuzuma"
+    },
+    {
+      "page": 60,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_060.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_060.txt",
+      "elapsed_sec": 3.32,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4556,
+        "completion_tokens": 1830,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "REFERENCES FOR PRINCIPLES OF SYSTEMIC THERAPY FOR AML\n\n22 Kadia TM, Reville PK, Borthakur G, et al. Venetoclax plus intensive chemotherapy with cladribine, idarubicin, and cytarabine in patients with "
+    },
+    {
+      "page": 61,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_061.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_061.txt",
+      "elapsed_sec": 3.14,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4467,
+        "completion_tokens": 1741,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "REFERENCES FOR PRINCIPLES OF SYSTEMIC THERAPY FOR AML\n\n44 Wei AH, Döhner H, Pocock C, et al. Oral azacitidine maintenance therapy for acute myeloid leukemia in first remission. N Engl J Med 2020;383:2"
+    },
+    {
+      "page": 62,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_062.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_062.txt",
+      "elapsed_sec": 1.72,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3574,
+        "completion_tokens": 848,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "REFERENCES FOR PRINCIPLES OF SYSTEMIC THERAPY FOR AML\n\n66 Fridle C, Medinger M, Wilk MC, et al. Cladribine, cytarabine and idarubicin (CLA-Ida) salvage chemotherapy in relapsed acute myeloid leukemia "
+    },
+    {
+      "page": 63,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_063.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_063.txt",
+      "elapsed_sec": 2.09,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3792,
+        "completion_tokens": 1066,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SUPPORTIVE CARE FOR AML\n\nThere are variations among institutions, but the following issues are important to consider in the management of AML.\n\nGeneral\n\n• Blood products:\n  ▶ Leukocyte-d"
+    },
+    {
+      "page": 64,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_064.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_064.txt",
+      "elapsed_sec": 1.23,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3219,
+        "completion_tokens": 493,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "MONITORING DURING INTENSIVE THERAPY\n\nInduction\n• CBC daily (differential daily or as clinically indicated during chemotherapy and every other day after recovery of ANC >0.5 x 10⁹/L until either normal"
+    },
+    {
+      "page": 65,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_065.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_065.txt",
+      "elapsed_sec": 1.66,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3498,
+        "completion_tokens": 772,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "MEASURABLE (MINIMAL) RESIDUAL DISEASE ASSESSMENT\n\nGeneral\n\n• There is compelling evidence in both children and adults with AML that detectable MRD following achievement of remission is associated with"
+    },
+    {
+      "page": 66,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_066.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_066.txt",
+      "elapsed_sec": 1.47,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3416,
+        "completion_tokens": 690,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "MEASURABLE (MINIMAL) RESIDUAL DISEASE ASSESSMENT\n\nTiming of MRD Assessment\n\n• While there is a paucity of data regarding the optimal frequency of MRD monitoring, the Panel recommends monitoring at the"
+    },
+    {
+      "page": 67,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_067.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_067.txt",
+      "elapsed_sec": 1.05,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3148,
+        "completion_tokens": 422,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "MEASURABLE (MINIMAL) RESIDUAL DISEASE ASSESSMENT\n\nRelevant Clinical Trial Results\n\n• In a study of patients with NPM1-mutated AML, proceeding to allogeneic HCT in CR1 led to a significant improvement "
+    },
+    {
+      "page": 68,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_068.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_068.txt",
+      "elapsed_sec": 2.42,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4010,
+        "completion_tokens": 1284,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "MEASURABLE (MINIMAL) RESIDUAL DISEASE ASSESSMENT\n\nREFERENCES\n\n1 Short NJ, Zhou S, Fu C, et al. Association of measurable residual disease with survival outcomes in patients with acute myeloid leukemia"
+    },
+    {
+      "page": 69,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_069.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_069.txt",
+      "elapsed_sec": 1.82,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3566,
+        "completion_tokens": 840,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "RESPONSE CRITERIA DEFINITIONS FOR ACUTE MYELOID LEUKEMIA\n\nThese response criteria were defined in the context of intensive chemotherapy regimens, and may not be predictive of outcomes for patients who"
+    },
+    {
+      "page": 70,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_070.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_070.txt",
+      "elapsed_sec": 0.99,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3075,
+        "completion_tokens": 349,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF VENETOCLAX USE WITH HMA OR LDAC\n\nGeneral\n• Recommend consultation with a high-volume tertiary care/academic medical center throughout course of treatment.\n• There are ongoing studies int"
+    },
+    {
+      "page": 71,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_071.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_071.txt",
+      "elapsed_sec": 1.21,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3242,
+        "completion_tokens": 516,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF VENETOCLAX USE WITH HMA OR LDAC\n\nTumor Lysis Syndrome (TLS) Risk/Monitoring During Cycle 1\n• To decrease the risk of severe TLS, aim to achieve WBC count of <25 x 10^9/L with hydroxyurea"
+    },
+    {
+      "page": 72,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_072.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_072.txt",
+      "elapsed_sec": 1.23,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3253,
+        "completion_tokens": 527,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nAcute Myeloid Leukemia (Age ≥18 years)\n\nPRINCIPLES OF VENETOCLAX USE WITH HMA OR LDAC\n\nCR (Response criteria, see AML-I)\nStart cycle 2 on day 29 or later if marrow resul"
+    },
+    {
+      "page": 73,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_073.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_073.txt",
+      "elapsed_sec": 1.48,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3429,
+        "completion_tokens": 703,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF VENETOCLAX USE WITH HMA OR LDAC REFERENCES\n\n1 Döhner H, Pratz KW, DiNardo CD, et al. Genetic risk stratification and outcomes among treatment-naive patients with AML treated with venetoc"
+    },
+    {
+      "page": 74,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_074.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_074.txt",
+      "elapsed_sec": 0.48,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 2768,
+        "completion_tokens": 42,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "INTRODUCTION\n\nDecisions about diagnosis and management for BPDCN should involve multidisciplinary consultation at a high-volume center with use of appropriate interventions. Consider referral to an ac"
+    },
+    {
+      "page": 75,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_075.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_075.txt",
+      "elapsed_sec": 1.37,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3353,
+        "completion_tokens": 627,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "EVALUATION/WORKUP FOR BPDCN\\textsuperscript{a,1,2} DIAGNOSIS\\textsuperscript{4}\n\n• H&P\n• CBC, platelets, differential, CMP\n• Analysis of skin lesions (collaboration with dermatology is recommended),\\t"
+    },
+    {
+      "page": 76,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_076.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_076.txt",
+      "elapsed_sec": 1.46,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3414,
+        "completion_tokens": 688,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nBlastic Plasmacytoid Dendritic Cell Neoplasm\n(Age ≥18 years)\n\nTREATMENT INDUCTION\n\n• Tagraxofusp-erzs (formerly SL-401) 12 mcg/kg IV over 15 minutes once daily on days 1"
+    },
+    {
+      "page": 77,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_077.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_077.txt",
+      "elapsed_sec": 0.79,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 2965,
+        "completion_tokens": 239,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "FOOTNOTES\n\nd Principles of Supportive Care for BPDCN (BPDCN-C).\ne Albumin ≥3.2 g/dL, LVEF ≥ institutional lower limit of normal, creatinine ≤1.5 mg/dL, bilirubin ≤1.5 mg/dL, AST/ALT ≤2.5 x ULN and no "
+    },
+    {
+      "page": 78,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_078.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_078.txt",
+      "elapsed_sec": 1.28,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3270,
+        "completion_tokens": 544,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nBlastic Plasmacytoid Dendritic Cell Neoplasm\n(Age ≥18 years)\n\nTREATMENT INDUCTION\n\n• Chemotherapy\n  ▶ ALL-type induction:\n    HyperCVAD (hyperfractionated cyclophosphami"
+    },
+    {
+      "page": 79,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_079.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_079.txt",
+      "elapsed_sec": 0.98,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3082,
+        "completion_tokens": 356,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nBlastic Plasmacytoid Dendritic Cell Neoplasm\n(Age ≥18 years)\n\nSURVEILLANCE\n\nTREATMENT FOR RELAPSED/REFRACTORY DISEASE\n\n• CBC, platelets every 1–3 mo for 2 y, then every "
+    },
+    {
+      "page": 80,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_080.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_080.txt",
+      "elapsed_sec": 2.74,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4211,
+        "completion_tokens": 1485,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "REFERENCES\n\n1 Khoury JD, Solary E, Abla O, et al. The 5th edition of the World Health Organization classification of haematolymphoid tumours: myeloid and histiocytic/dendritic neoplasms. Leukemia 2022"
+    },
+    {
+      "page": 81,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_081.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_081.txt",
+      "elapsed_sec": 1.99,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3743,
+        "completion_tokens": 1017,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF BPDCN\n\nGeneral Principles:\n• BPDCN is a disorder of immature dendritic cells that regulate effector T-cell function.\n• Diagnosis can be extremely challenging and whenever possible should"
+    },
+    {
+      "page": 82,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_082.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_082.txt",
+      "elapsed_sec": 0.99,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3087,
+        "completion_tokens": 361,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "EVALUATION AND TREATMENT OF CNS DISEASE\n\nWith CNS disease\n\n- CNS-directed IT chemotherapy$^a$\n  - Twice weekly dosing until CSF is clear\n  - Once the CSF is clear (negative on cytology) continue weekl"
+    },
+    {
+      "page": 83,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_083.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_083.txt",
+      "elapsed_sec": 1.25,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3269,
+        "completion_tokens": 543,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "PRINCIPLES OF SUPPORTIVE CARE FOR BPDCN\n\nAdministration/Management of Toxicities Associated with Tagraxofusp-erzs\n\n• Patients must have a baseline serum albumin of 3.2 g/dL or higher to be able to sta"
+    },
+    {
+      "page": 84,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_084.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_084.txt",
+      "elapsed_sec": 1.36,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3316,
+        "completion_tokens": 590,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "ABBREVIATIONS\n\naGVHD acute graft-versus-host disease\nALAL acute leukemia of ambiguous lineage\nALT alanine aminotransferase\nAML acute myeloid leukemia\nANC absolute neutrophil count\nAPL acute promyelocy"
+    },
+    {
+      "page": 85,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_085.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_085.txt",
+      "elapsed_sec": 0.62,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 2857,
+        "completion_tokens": 131,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "ABBREVIATIONS\n\nOS overall survival\n\nPCR polymerase chain reaction\n\nPR partial remission\n\nPT prothrombin time\n\nPTD partial tandem duplication\n\nPTT partial thromboplastin time\n\nRBC red blood cell\n\nRFS r"
+    },
+    {
+      "page": 86,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_086.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_086.txt",
+      "elapsed_sec": 0.88,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3010,
+        "completion_tokens": 284,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nAcute Myeloid Leukemia (Age ≥18 years)\n\nNCCN Categories of Evidence and Consensus\n\nCategory 1 Based upon high-level evidence (≥1 randomized phase 3 trials or high-qualit"
+    },
+    {
+      "page": 87,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_087.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_087.txt",
+      "elapsed_sec": 1.51,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3379,
+        "completion_tokens": 653,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Guidelines Version 3.2026\nAcute Myeloid Leukemia\n\nDiscussion\nThis discussion corresponds to the NCCN Guidelines for Acute Myeloid Leukemia. Last updated November 24, 2025.\n\nTable of Contents\n\nOve"
+    },
+    {
+      "page": 88,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_088.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_088.txt",
+      "elapsed_sec": 1.71,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3557,
+        "completion_tokens": 831,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Overview\n\nAcute myeloid leukemia (AML) is a heterogeneous hematologic malignancy characterized by the clonal expansion of myeloid blasts in the peripheral blood, bone marrow (BM), and/or other tissues"
+    },
+    {
+      "page": 89,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_089.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_089.txt",
+      "elapsed_sec": 1.54,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3442,
+        "completion_tokens": 716,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Literature Search Criteria\n\nPrior to the update of the NCCN Guidelines® for AML, an electronic search of the PubMed database was performed to obtain key literature in AML published since the previous "
+    },
+    {
+      "page": 90,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_090.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_090.txt",
+      "elapsed_sec": 1.8,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3561,
+        "completion_tokens": 835,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "acid should also be assessed to rule out nutritional deficiencies that can, in extreme circumstances, be mistaken for a diagnosis of AML.\n\nBM core biopsy and aspirate analyses (including immunophenoty"
+    },
+    {
+      "page": 91,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_091.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_091.txt",
+      "elapsed_sec": 1.81,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3580,
+        "completion_tokens": 854,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "disease is suspected, an FDG-PET/CT should be considered. Patients with significant CNS signs or symptoms at presentation should be evaluated using appropriate imaging techniques, such as radiography,"
+    },
+    {
+      "page": 92,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_092.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_092.txt",
+      "elapsed_sec": 1.98,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3714,
+        "completion_tokens": 988,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Early integration of palliative care should also be considered. See NCCN Guidelines for Palliative Care (available at www.NCCN.org). A randomized trial of 160 patients with AML assessed patient-report"
+    },
+    {
+      "page": 93,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_093.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_093.txt",
+      "elapsed_sec": 1.8,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3604,
+        "completion_tokens": 878,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "In 2022, WHO eliminated blast cutoffs for most types of AML with defining genetical alterations (excluding AML with BCR::ABL1 and AML with CEBPA mutation), though the 20% blast cutoff to differentiate"
+    },
+    {
+      "page": 94,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_094.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_094.txt",
+      "elapsed_sec": 1.85,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3618,
+        "completion_tokens": 892,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Risk Stratification by Biological Disease Factors\n\nAlthough cytogenetic and molecular information are often unknown when treatment is initiated in patients with de novo AML, karyotypes and molecular m"
+    },
+    {
+      "page": 95,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_095.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_095.txt",
+      "elapsed_sec": 1.81,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3602,
+        "completion_tokens": 876,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "These findings were confirmed in subsequent analyses from other large cooperative group studies. In an analysis of data from patients treated on SWOG protocols (n = 1344; age 16–88 years), 13% of pati"
+    },
+    {
+      "page": 96,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_096.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_096.txt",
+      "elapsed_sec": 2.01,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3729,
+        "completion_tokens": 1003,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "and improved event-free survival (EFS) and OS compared with patients who have NK-AML with wild-type NPM1, resulting in outcomes similar to patients with CBF-AML. However, a meta-analysis revealed that"
+    },
+    {
+      "page": 97,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_097.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_097.txt",
+      "elapsed_sec": 2.16,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3798,
+        "completion_tokens": 1072,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "mutations (biallelic) of CEBPA but not in the setting of a single mutation of the gene. The 8-year OS rates reported in this study for patients with double-mutant–positive, single-mutation, and wild-t"
+    },
+    {
+      "page": 98,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_098.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_098.txt",
+      "elapsed_sec": 2.04,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3740,
+        "completion_tokens": 1014,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Findings from published reports on the prognostic effects of IDH1 mutations have been inconsistent. Although some studies showed no prognostic effect of IDH1 mutations on OS when considering all IDH m"
+    },
+    {
+      "page": 99,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_099.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_099.txt",
+      "elapsed_sec": 2.21,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3771,
+        "completion_tokens": 1045,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "mutations compared to without NPM1 mutations ($P = .0056$). In another study including 81 patients (median age, 74 years) with newly diagnosed AML treated with venetoclax combined with a hypomethylati"
+    },
+    {
+      "page": 100,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_100.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_100.txt",
+      "elapsed_sec": 2.05,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3744,
+        "completion_tokens": 1018,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "including mutations in RAS (53%; NRAS in 45%; KRAS in 13%), KIT (37%), and FLT3 (17%; FLT3-TKD in 14%; FLT3-ITD in 5%; both mutations present in 2%). In addition, 25% of cases had more than one of the"
+    },
+    {
+      "page": 101,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_101.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_101.txt",
+      "elapsed_sec": 2.11,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3789,
+        "completion_tokens": 1063,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "ASXL Mutations\n\nThe ASXL1 gene, located on chromosome band 20q11, encodes a protein in the ETP genes family, which has functions in transcription. ASXL1 mutations have been reported in approximately 5"
+    },
+    {
+      "page": 102,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_102.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_102.txt",
+      "elapsed_sec": 2.02,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3724,
+        "completion_tokens": 998,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "RUNX1, SF3B1, SRSF2, STAG2, U2AF1, and/or ZRSR2) as adverse risk.22\n\nAML with mutated NPM1 and adverse-risk cytogenetics has also been categorized as adverse-risk, based on a pooled analysis of 2426 p"
+    },
+    {
+      "page": 103,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_103.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_103.txt",
+      "elapsed_sec": 1.68,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3468,
+        "completion_tokens": 742,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "diagnostics in patients who have NK-AML or in other situations where molecular analysis may refine the prognostic category.\n\nFamilial Genetic Alterations in AML\n\nRelative to sporadic cases of AML and "
+    },
+    {
+      "page": 104,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_104.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_104.txt",
+      "elapsed_sec": 1.79,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3586,
+        "completion_tokens": 860,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "For patients who initiate treatment with lower intensity therapy, such as azacitidine plus venetoclax, and achieve response, allogeneic HCT or continuation of the lower intensity treatment regimen are"
+    },
+    {
+      "page": 105,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_105.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_105.txt",
+      "elapsed_sec": 1.87,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3670,
+        "completion_tokens": 944,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "for molecular testing or BM with cytogenetics to confirm the diagnosis. The initial clinical diagnosis of APL may be confirmed by FISH or PCR ideally in the peripheral blood and if not confirmed, ATRA"
+    },
+    {
+      "page": 106,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_106.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_106.txt",
+      "elapsed_sec": 2.32,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3955,
+        "completion_tokens": 1229,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "several large cooperative group trials.164-167 Using ATRA-based induction regimens followed by consolidation with regimens containing either ATRA with anthracyclines, or cytarabine with anthracyclines"
+    },
+    {
+      "page": 107,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_107.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_107.txt",
+      "elapsed_sec": 2.47,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3992,
+        "completion_tokens": 1266,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "vs. 14%; $P = .03$).$^{165}$ However, for patients with a WBC count >10 x 10^9/L, the cytarabine-containing protocol resulted in higher CR (95% vs. 84%; $P = .018$) and 3-year OS rates (91.5% vs. 81%;"
+    },
+    {
+      "page": 108,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_108.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_108.txt",
+      "elapsed_sec": 2.21,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3845,
+        "completion_tokens": 1119,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "treatment with ATRA, oral methotrexate, and 6-mercaptopurine.183 Grade 3 or 4 adverse events occurred primarily during induction (as above); the most common grade 3 or 4 events during consolidation (c"
+    },
+    {
+      "page": 109,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_109.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_109.txt",
+      "elapsed_sec": 1.93,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3689,
+        "completion_tokens": 963,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "through 8 in course 1 and then twice weekly in weeks 2 through 4 during courses 2 through 5. Patients with high-risk disease could receive an initial dose of GO (6 mg/m² IV). Comparison between the AT"
+    },
+    {
+      "page": 110,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_110.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_110.txt",
+      "elapsed_sec": 2.05,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3746,
+        "completion_tokens": 1020,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "studies suggest a supra-additive effect with ATRA plus cytarabine, independent of the anthracycline. The APML4 trial has shown the benefit of induction that includes ATRA and ATO. Unlike the other reg"
+    },
+    {
+      "page": 111,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_111.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_111.txt",
+      "elapsed_sec": 2.05,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3753,
+        "completion_tokens": 1027,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "promyelocytes, but is optional. For patients with high-risk disease, LP should be considered at count recovery following induction therapy, before proceeding with consolidation. Many consolidation reg"
+    },
+    {
+      "page": 112,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_112.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_112.txt",
+      "elapsed_sec": 2.09,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3787,
+        "completion_tokens": 1061,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "and received the same consolidation regimen with ATRA, mitoxantrone, and idarubicin (ATRA 45 mg/m² for 15 days + idarubicin 5 mg/m² for 4 days in cycle 1; ATRA for 15 days and mitoxantrone 10 mg/m²/da"
+    },
+    {
+      "page": 113,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_113.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_113.txt",
+      "elapsed_sec": 2.08,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3778,
+        "completion_tokens": 1052,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "longer durations of myelosuppression, which necessitated a protocol amendment to further reduce the chemotherapy dose in patients receiving ATO. In the second interim analysis, the only change was a d"
+    },
+    {
+      "page": 114,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_114.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_114.txt",
+      "elapsed_sec": 1.89,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3645,
+        "completion_tokens": 919,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "For patients with high-risk disease, preferred consolidation therapies include ATRA plus ATO as used in the APML4 trial, or ATRA and ATO (plus a single dose of GO every 4–5 weeks until molecular CR if"
+    },
+    {
+      "page": 115,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_115.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_115.txt",
+      "elapsed_sec": 1.78,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3609,
+        "completion_tokens": 883,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "ATRA in combination with chemotherapy was 93%. Results from the long-term follow-up of the APL 93 study showed a beneficial effect of maintenance treatment with intermittent ATRA and continuous chemot"
+    },
+    {
+      "page": 116,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_116.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_116.txt",
+      "elapsed_sec": 1.94,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3593,
+        "completion_tokens": 867,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "with ATO, ATRA, and daunorubicin. Patients are then randomized to receive maintenance therapy or no further treatment (observation only). No benefit for maintenance was observed.193 The benefit of mai"
+    },
+    {
+      "page": 117,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_117.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_117.txt",
+      "elapsed_sec": 1.97,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3692,
+        "completion_tokens": 966,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "relapse following therapy with ATO-containing regimens during initial induction and/or consolidation therapy remains unknown. A retrospective analysis in a small number of patients reported a second C"
+    },
+    {
+      "page": 118,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_118.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_118.txt",
+      "elapsed_sec": 2.08,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3738,
+        "completion_tokens": 1012,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "A small phase II trial in patients with relapsed APL evaluated ATO during induction and consolidation followed by a peripheral blood hematopoietic cell harvest after HiDAC chemotherapy and autologous "
+    },
+    {
+      "page": 119,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_119.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_119.txt",
+      "elapsed_sec": 1.96,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3698,
+        "completion_tokens": 972,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "A small percentage of relapsed APL has a CNS component. Therefore, for patients who are in second morphologic remission, the use of IT chemotherapy for CNS prophylaxis should be considered. Patients w"
+    },
+    {
+      "page": 120,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_120.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_120.txt",
+      "elapsed_sec": 1.85,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3642,
+        "completion_tokens": 916,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "algorithm].183 In the Italian-German Cooperative Group study that evaluated ATRA combined with ATO versus the AIDA regimen (phase III APL0406 trial), patients received prophylaxis with prednisone (0.5"
+    },
+    {
+      "page": 121,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_121.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_121.txt",
+      "elapsed_sec": 1.67,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3495,
+        "completion_tokens": 769,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "(15.8% vs. 0%; $P = .001$), suggesting a capped dose of 15 mg may be reasonable, particularly for patients with obesity.$^{217}$\n\nGrowth factors are not recommended during induction for patients with "
+    },
+    {
+      "page": 122,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_122.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_122.txt",
+      "elapsed_sec": 1.78,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3581,
+        "completion_tokens": 855,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "≥60 years of age (n = 801) treated with 2 courses of induction therapy with cytarabine and daunorubicin. The algorithm, with or without knowledge of cytogenetic or molecular risk factors, predicts the"
+    },
+    {
+      "page": 123,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_123.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_123.txt",
+      "elapsed_sec": 2.28,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3921,
+        "completion_tokens": 1195,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "The randomized Acute Leukemia French Association (ALFA)-9801 study (n = 468) showed that idarubicin induction (using the standard 12 mg/m² daily for 3 days or intensified with 12 mg/m² daily for 4 day"
+    },
+    {
+      "page": 124,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_124.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_124.txt",
+      "elapsed_sec": 2.0,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3754,
+        "completion_tokens": 1028,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "these two doses in 1206 patients who were predominately <60 years of age. There was no difference in CR (73% vs. 75%; odds ratio [OR], 1.07; 95% CI, 0.83–1.39; $P = .60$). The 60-day mortality was hig"
+    },
+    {
+      "page": 125,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_125.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_125.txt",
+      "elapsed_sec": 2.11,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3816,
+        "completion_tokens": 1090,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "daunorubicin (50 mg/m² on days 1, 3, and 5) and cytarabine (100 mg/m² on days 1–10 every 12 hours), was evaluated in patients ≤60 years of age with previously untreated AML (n = 1113). The addition of"
+    },
+    {
+      "page": 126,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_126.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_126.txt",
+      "elapsed_sec": 2.33,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3904,
+        "completion_tokens": 1178,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "cytarabine (200 mg/m² continuous infusion for 7 days), with or without (control arm) fractionated GO 3 mg/m² given on days 1, 4, and 7.255 Patients with persistent marrow blasts at day 15 received add"
+    },
+    {
+      "page": 127,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_127.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_127.txt",
+      "elapsed_sec": 2.34,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3907,
+        "completion_tokens": 1181,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "OS (OR, 0.90; 95% CI, 0.82–0.98; $P = .01$) with the addition of GO to conventional induction therapy. It was noted that the greatest survival benefit was seen in patients with favorable cytogenetics."
+    },
+    {
+      "page": 128,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_128.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_128.txt",
+      "elapsed_sec": 2.27,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3888,
+        "completion_tokens": 1162,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "The randomized phase 3 QuANTUM-First trial compared chemotherapy in combination with the FLT3 inhibitor quizartinib versus placebo in patients (n = 539; age range, 20–75 years; median age, 56 years) w"
+    },
+    {
+      "page": 129,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_129.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_129.txt",
+      "elapsed_sec": 2.4,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3952,
+        "completion_tokens": 1226,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "neutropenia (68.0% vs. 70.9%), pneumonia (19.6% vs. 14.6%), and hypoxia (13.1% vs. 15.2%).272\n\nOther Regimens for Intermediate- or Poor-Risk Cytogenetics\n\nHiDAC-Containing Regimens: HiDAC as induction"
+    },
+    {
+      "page": 130,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_130.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_130.txt",
+      "elapsed_sec": 2.11,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3789,
+        "completion_tokens": 1063,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "were not significantly different among treatment arms. Induction therapy with HiDAC was associated with significantly higher rates of treatment-related mortality (14% vs. 5% for patients <50 years of "
+    },
+    {
+      "page": 131,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_131.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_131.txt",
+      "elapsed_sec": 2.17,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3856,
+        "completion_tokens": 1130,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "strongly influenced by cytogenetics, with CR rates of 87%, 79%, and 62% for favorable-, intermediate-, and poor-risk groups, respectively.280\n\nAs previously mentioned, in the MRC AML 15 trial, younger"
+    },
+    {
+      "page": 132,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_132.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_132.txt",
+      "elapsed_sec": 1.98,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3725,
+        "completion_tokens": 999,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "In a multicenter phase II study, 118 patients with R/R AML received induction therapy with cladribine 5 mg/m², cytarabine 2 g/m², mitoxantrone 10 mg/m², and G-CSF. For those who achieved PR with induc"
+    },
+    {
+      "page": 133,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_133.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_133.txt",
+      "elapsed_sec": 2.13,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3832,
+        "completion_tokens": 1106,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "disease, standard 7 + 3 with GO or FLAG-IDA with GO (category 2B). FLAG and CLAG containing regimens should be used with caution in patients >60 years of age.\n\nFor patients with FLT3-mutated AML, mido"
+    },
+    {
+      "page": 134,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_134.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_134.txt",
+      "elapsed_sec": 1.87,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3659,
+        "completion_tokens": 933,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "escalation to higher doses of cytarabine 1 to 3 g/m² may be considered for reinduction; no data are available to determine superiority of cytarabine 100 to 200 mg/m² versus 1 to 3 g/m². After a BM bio"
+    },
+    {
+      "page": 135,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_135.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_135.txt",
+      "elapsed_sec": 2.24,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3897,
+        "completion_tokens": 1171,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "High-Dose Cytarabine: Since 1994, multiple (3–4) cycles of HiDAC therapy have been the standard consolidation regimen for patients <60 years of age with disease with either favorable- or intermediate-"
+    },
+    {
+      "page": 136,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_136.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_136.txt",
+      "elapsed_sec": 2.34,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3962,
+        "completion_tokens": 1236,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "a 2-hour infusion) on days 8 and 10.295 Treatment arm B consisted of cytarabine (200 mg/m² continuous infusion) for 7 days combined with daunorubicin (60 mg/m² for 3 days). In treatment arm B, at day "
+    },
+    {
+      "page": 137,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_137.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_137.txt",
+      "elapsed_sec": 2.17,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3854,
+        "completion_tokens": 1128,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "relapse was statistically lower for higher dose cytarabine but this did not translate into better RFS.251\n\nIntermediate-Dose Cytarabine: The prospective CALGB trial277 established the efficacy of HiDA"
+    },
+    {
+      "page": 138,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_138.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_138.txt",
+      "elapsed_sec": 2.06,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3772,
+        "completion_tokens": 1046,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "patients who underwent transplant in remission. In a retrospective analysis comparing outcomes with RIC allogeneic HCT and autologous HCT in patients ≥50 years of age based on large registry data, RIC"
+    },
+    {
+      "page": 139,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_139.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_139.txt",
+      "elapsed_sec": 1.73,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3578,
+        "completion_tokens": 852,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "allogeneic HCT as post-remission therapy (n = 97), a 5-year OS rate was 35% (95% CI, 25%–44%).\n\nCollectively, these studies suggest that RIC allogeneic HCT is a feasible treatment option for patients "
+    },
+    {
+      "page": 140,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_140.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_140.txt",
+      "elapsed_sec": 2.41,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3996,
+        "completion_tokens": 1270,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "patients with high-risk MDS (based on FAB criteria), 113 study patients (32%) fulfilled criteria for AML using the 2008 WHO classification, with marrow-blast percentages between 20% and 30%. In the su"
+    },
+    {
+      "page": 141,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_141.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_141.txt",
+      "elapsed_sec": 2.39,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3999,
+        "completion_tokens": 1273,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "decitabine versus cytarabine included thrombocytopenia (27% vs. 26%), neutropenia (24% vs. 15%), febrile neutropenia (21% vs. 15%), and anemia (21% vs. 20%). The 30-day mortality rates were similar be"
+    },
+    {
+      "page": 142,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_142.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_142.txt",
+      "elapsed_sec": 2.23,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3897,
+        "completion_tokens": 1171,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "in the setting of TP53 or FLT3 mutations (89% and 72% vs. 30% and 44%, respectively).323\n\nA randomized, placebo-controlled, phase III study also evaluated the efficacy of venetoclax combined with low-"
+    },
+    {
+      "page": 143,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_143.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_143.txt",
+      "elapsed_sec": 2.11,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3821,
+        "completion_tokens": 1095,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Low-Dose Cytarabine-Containing Regimens\n\nOther approaches have evaluated low-dose cytarabine. The UK NCRI AML 14 trial randomized 217 patients who were older (primarily aged >60 years; de novo AML, n "
+    },
+    {
+      "page": 144,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_144.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_144.txt",
+      "elapsed_sec": 2.18,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3865,
+        "completion_tokens": 1139,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "IDH Mutation-Positive AML\n\nInitially approved by the FDA for use in the R/R AML setting, IDH-targeted inhibitors have demonstrated utility in the frontline setting. In a phase I/II study, the clinical"
+    },
+    {
+      "page": 145,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_145.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_145.txt",
+      "elapsed_sec": 1.89,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3655,
+        "completion_tokens": 929,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "adults with newly diagnosed or R/R IDH1-mutated AML, ORR was 77% with combination therapy and 25% with monotherapy.334\n\nTreatment with IDH inhibitors may induce differentiation syndrome and hyperleuko"
+    },
+    {
+      "page": 146,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_146.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_146.txt",
+      "elapsed_sec": 2.16,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3855,
+        "completion_tokens": 1129,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "trials$^{333,334,336}$, olutasidenib monotherapy may be useful for those not eligible for a preferred regimen and not eligible for ivosidenib monotherapy due to a prolonged QTcF (a category 2B recomme"
+    },
+    {
+      "page": 147,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_147.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_147.txt",
+      "elapsed_sec": 2.18,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3870,
+        "completion_tokens": 1144,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "37% OS (HR, 0.63; 95% CI, 0.35–1.12) and 49% RFS benefit (HR, 0.51; 95% CI, 0.27–0.95) in patients with FLT3-mutated AML compared to placebo. For both patients with NPM1-mutated AML and FLT3-mutated A"
+    },
+    {
+      "page": 148,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_148.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_148.txt",
+      "elapsed_sec": 2.01,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3753,
+        "completion_tokens": 1027,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "36.3%; $P = .0003$). There was no significant increase noted in non-relapse mortality or 5-year cumulative incidence of chronic GVHD with sorafenib maintenance.\n\nIn the phase II SORMAIN trial, patient"
+    },
+    {
+      "page": 149,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_149.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_149.txt",
+      "elapsed_sec": 1.68,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3543,
+        "completion_tokens": 817,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NCCN Recommendations\n\nPost-chemotherapy\n\nFor patients with non-CBF-AML in CR following intensive chemotherapy who completed no consolidation or some consolidation and for whom no allogeneic HCT is pla"
+    },
+    {
+      "page": 150,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_150.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_150.txt",
+      "elapsed_sec": 1.75,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3594,
+        "completion_tokens": 868,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "section, and participation in clinical trials is encouraged. Prior to administering therapy, it is important to achieve a WBC count of <25 x 10^9/L with hydroxyurea or leukapheresis if needed. It is w"
+    },
+    {
+      "page": 151,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_151.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_151.txt",
+      "elapsed_sec": 1.76,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3586,
+        "completion_tokens": 860,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "second cycle can proceed with adjustments to dose or schedule of venetoclax and HMA or low-dose cytarabine.358\n\nDuring subsequent cycles of treatment, if remission was observed after the first cycle, "
+    },
+    {
+      "page": 152,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_152.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_152.txt",
+      "elapsed_sec": 1.8,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3623,
+        "completion_tokens": 897,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "flow cytometry-based methods. A highly sensitive NGS-based, targeted, deep-sequencing assay with a sensitivity level of $\\leq 10^{-5}$ is recommended for detection of FLT3-ITD, however.\n\nThe data from"
+    },
+    {
+      "page": 153,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_153.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_153.txt",
+      "elapsed_sec": 1.87,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3646,
+        "completion_tokens": 920,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "the MLL fusion transcripts, which were associated with a better outcome. While most studies have shown a correlation between transcript level and outcome, a study of childhood AML showed RQ-PCR of RUN"
+    },
+    {
+      "page": 154,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_154.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_154.txt",
+      "elapsed_sec": 1.84,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3636,
+        "completion_tokens": 910,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "HCT compared with 57% sensitivity using WT1 RQ-PCR alone. Notably, for patients in CR prior to allogeneic HCT, the presence of pre-transplantation MRD positivity in peripheral blood testing was associ"
+    },
+    {
+      "page": 155,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_155.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_155.txt",
+      "elapsed_sec": 1.86,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3606,
+        "completion_tokens": 880,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "discussion. The inexperienced laboratories had a success rate of 82% to 93% for defining at least one LAIP in a sample from 35 evaluable samples. The missed LAIPs would have resulted in 7% to 18% of t"
+    },
+    {
+      "page": 156,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_156.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_156.txt",
+      "elapsed_sec": 1.88,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3645,
+        "completion_tokens": 919,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "intensity therapy has demonstrated high rates of MRD reduction in MRD and oligoblastic AML.422\n\nPostremission Surveillance for AML\n\nMonitoring CBCs, including platelets, every 1 to 3 months for the fi"
+    },
+    {
+      "page": 157,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_157.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_157.txt",
+      "elapsed_sec": 1.94,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3687,
+        "completion_tokens": 961,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "who had CR with full or partial hematologic recovery was 34% and 15.3% in the gilteritinib and chemotherapy groups, respectively. The median OS was significantly longer in the gilteritinib group compa"
+    },
+    {
+      "page": 158,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_158.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_158.txt",
+      "elapsed_sec": 1.93,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3687,
+        "completion_tokens": 961,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "KMT2A-Rearranged AML\n\nIn the ongoing phase II AUGMENT-101 study the safety and efficacy of the oral menin inhibitor revumenib was evaluated in adult and pediatric patients ≥30 days old (n = 94; 57 wit"
+    },
+    {
+      "page": 159,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_159.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_159.txt",
+      "elapsed_sec": 2.21,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3829,
+        "completion_tokens": 1103,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Based on this data, the FDA approved ziftomenib for adults with R/R AML with a susceptible NPM1 mutation with no satisfactory alternative treatment options.\n\nChemotherapy\n\nThe guidelines provide a lis"
+    },
+    {
+      "page": 160,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_160.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_160.txt",
+      "elapsed_sec": 2.2,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3816,
+        "completion_tokens": 1090,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "regimen (n = 101) had a higher CR rate (OR, 9.57; $P < .0001$) and a longer survival (mortality HR, 0.43; $P = .0002$).\n\nThe regimens for R/R AML grouped under less intensive therapy include HMAs (aza"
+    },
+    {
+      "page": 161,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_161.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_161.txt",
+      "elapsed_sec": 1.72,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3564,
+        "completion_tokens": 838,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "treatment options may include: 1) HMAs alone (azacitidine or decitabine)$^{312,319,451}$; 2) low-dose cytarabine$^{328,452}$ (a category 2B recommendation); or 3) venetoclax combined with HMAs or low-"
+    },
+    {
+      "page": 162,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_162.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_162.txt",
+      "elapsed_sec": 1.58,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3486,
+        "completion_tokens": 760,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Removal and/or replacement of a CVAD should be determined based on individual clinical circumstances.\n\nPatients who receive doses of cytarabine ≥2 g/m², or patients >60 years of age who receive doses "
+    },
+    {
+      "page": 163,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_163.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_163.txt",
+      "elapsed_sec": 1.69,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3552,
+        "completion_tokens": 826,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "At the outset, it is important to discuss the goals of care with the patient and establish an understanding of the complications that can arise without transfusions. In addition, it will be helpful to"
+    },
+    {
+      "page": 164,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_164.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_164.txt",
+      "elapsed_sec": 1.79,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3614,
+        "completion_tokens": 888,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "clinical situation (eg, extent of CNS leukemia, symptoms, systemic therapies given concurrently) and institutional practices. Initially, IT therapy is generally given twice weekly until the cytology s"
+    },
+    {
+      "page": 165,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_165.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_165.txt",
+      "elapsed_sec": 1.94,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3641,
+        "completion_tokens": 915,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "relapse, have been found to be in the range of 9% to 26% in several additional studies.476,481,482\n\nWorkup\n\nThe evaluation and initial workup for suspected BPDCN consists of a comprehensive medical hi"
+    },
+    {
+      "page": 166,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_166.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_166.txt",
+      "elapsed_sec": 2.03,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3737,
+        "completion_tokens": 1011,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "expertise, has been formed to define the current standard of care for management of BPDCN and to identify future areas of research.473\n\nCD123-Targeted Therapy\nCD123, or IL3Rα, overexpression is presen"
+    },
+    {
+      "page": 167,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_167.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_167.txt",
+      "elapsed_sec": 2.01,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3753,
+        "completion_tokens": 1027,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "The most common adverse events noted in the Pemmaraju study were increased levels of alanine aminotransferase (ALT) and aspartate aminotransferase (AST), hypoalbuminemia, fatigue, fever, thrombocytope"
+    },
+    {
+      "page": 168,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_168.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_168.txt",
+      "elapsed_sec": 2.1,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3748,
+        "completion_tokens": 1022,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Another retrospective study evaluated the diagnostic flow cytometry pattern and outcome of nine patients with BPDCN after front-line treatment with hyper-CVAD. In this group, seven patients received i"
+    },
+    {
+      "page": 169,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_169.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_169.txt",
+      "elapsed_sec": 2.05,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3745,
+        "completion_tokens": 1019,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Hematopoietic Stem Cell Transplantation\n\nDue to the rarity of BPDCN, there have been limited established standardized therapeutic approaches. HCT seems to generate durable remissions, especially if gi"
+    },
+    {
+      "page": 170,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_170.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_170.txt",
+      "elapsed_sec": 1.82,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3599,
+        "completion_tokens": 873,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Tagraxofusp-ersz should be administered as an IV infusion at 12 µg/kg over 15 minutes once daily on days 1 to 5 of each 21-day cycle. Alternatively, 5 doses can be administered over a 10-day period, i"
+    },
+    {
+      "page": 171,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_171.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_171.txt",
+      "elapsed_sec": 2.5,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4010,
+        "completion_tokens": 1284,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "References\n\n1. Siegel RL, Kratzer TB, Giaquinto AN, et al. Cancer statistics, 2025. CA Cancer J Clin 2025;75:10–45. Available at: https://www.ncbi.nlm.nih.gov/pubmed/39817679.\n\n2. SEER 22, 2015-2019; "
+    },
+    {
+      "page": 172,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_172.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_172.txt",
+      "elapsed_sec": 2.54,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4061,
+        "completion_tokens": 1335,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "2004;22:4926–4933. Available at: http://www.ncbi.nlm.nih.gov/pubmed/15611507.\n\n15. Borthakur G, Lin E, Jain N, et al. Survival is poorer in patients with secondary core-binding factor acute myelogenou"
+    },
+    {
+      "page": 173,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_173.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_173.txt",
+      "elapsed_sec": 2.5,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4042,
+        "completion_tokens": 1316,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "newly diagnosed with acute myeloid leukemia. Leuk Lymphoma 2015;56:135–140. Available at: http://www.ncbi.nlm.nih.gov/pubmed/24913512.\n\n30. El-Jawahri A, LeBlanc TW, Kavanaugh A, et al. Effectiveness "
+    },
+    {
+      "page": 174,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_174.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_174.txt",
+      "elapsed_sec": 2.63,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4074,
+        "completion_tokens": 1348,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "42. Medeiros BC, Othus M, Fang M, et al. Prognostic impact of monosomal karyotype in young adult and elderly acute myeloid leukemia: the Southwest Oncology Group (SWOG) experience. Blood 2010;116:2224"
+    },
+    {
+      "page": 175,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_175.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_175.txt",
+      "elapsed_sec": 2.6,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4101,
+        "completion_tokens": 1375,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "55. Verhaak RG, Goudswaard CS, van Putten W, et al. Mutations in nucleophosmin (NPM1) in acute myeloid leukemia (AML): association with other gene abnormalities and previously established gene express"
+    },
+    {
+      "page": 176,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_176.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_176.txt",
+      "elapsed_sec": 2.57,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4065,
+        "completion_tokens": 1339,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "68. Whitman SP, Maharry K, Radmacher MD, et al. FLT3 internal tandem duplication associates with adverse outcome and gene- and microRNA-expression signatures in patients 60 years of age or older with "
+    },
+    {
+      "page": 177,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_177.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_177.txt",
+      "elapsed_sec": 2.6,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4110,
+        "completion_tokens": 1384,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "acute myeloid leukemia patients. J Hematol Oncol 2012;5:5. Available at: http://www.ncbi.nlm.nih.gov/pubmed/22397365.\n\n81. Chou WC, Hou HA, Chen CY, et al. Distinct clinical and biologic characteristi"
+    },
+    {
+      "page": 178,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_178.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_178.txt",
+      "elapsed_sec": 2.64,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4082,
+        "completion_tokens": 1356,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "cytogenetically normal acute myeloid leukemia. J Clin Oncol 2012;30:742–750. Available at: http://www.ncbi.nlm.nih.gov/pubmed/22291079.\n\n95. Markova J, Michkova P, Burckova K, et al. Prognostic impact"
+    },
+    {
+      "page": 179,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_179.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_179.txt",
+      "elapsed_sec": 2.67,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4153,
+        "completion_tokens": 1427,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "107. Tamai H, Inokuchi K. 11q23/MLL acute leukemia: update of clinical aspects. J Clin Exp Hematop 2010;50:91–98. Available at: https://www.ncbi.nlm.nih.gov/pubmed/21123966.\n\n108. Dohner K, Tobis K, U"
+    },
+    {
+      "page": 180,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_180.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_180.txt",
+      "elapsed_sec": 2.6,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4110,
+        "completion_tokens": 1384,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "121. Shen Y, Zhu YM, Fan X, et al. Gene mutation patterns and their prognostic impact in a cohort of 1185 patients with acute myeloid leukemia. Blood 2011;118:5593–5603. Available at: https://www.ncbi"
+    },
+    {
+      "page": 181,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_181.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_181.txt",
+      "elapsed_sec": 2.46,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4024,
+        "completion_tokens": 1298,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "134. Churpek JE, Godley LA. Familial acute leukemia and myelodysplastic syndromes. Post TW, ed. UpToDate. Waltham, MA: UpToDate Inc. Available at: https://www.uptodate.com (Accessed on September 9, 20"
+    },
+    {
+      "page": 182,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_182.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_182.txt",
+      "elapsed_sec": 2.67,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4076,
+        "completion_tokens": 1350,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Haematol 2007;78:213–219. Available at: http://www.ncbi.nlm.nih.gov/pubmed/17241371.\n\n148. Di Bona E, Avvisati G, Castaman G, et al. Early haemorrhagic morbidity and mortality during remission inducti"
+    },
+    {
+      "page": 183,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_183.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_183.txt",
+      "elapsed_sec": 2.59,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4092,
+        "completion_tokens": 1366,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "160. Chillon MC, Santamaria C, Garcia-Sanz R, et al. Long FLT3 internal tandem duplications and reduced PML-RARalpha expression at diagnosis characterize a high-risk subgroup of acute promyelocytic le"
+    },
+    {
+      "page": 184,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_184.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_184.txt",
+      "elapsed_sec": 2.77,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4199,
+        "completion_tokens": 1473,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "173. Ades L, Chevret S, Raffoux E, et al. Is cytarabine useful in the treatment of acute promyelocytic leukemia? Results of a randomized trial from the European Acute Promyelocytic Leukemia Group. J C"
+    },
+    {
+      "page": 185,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_185.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_185.txt",
+      "elapsed_sec": 2.56,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4101,
+        "completion_tokens": 1375,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "leukemia. Haematologica 2012;97:227–234. Available at: http://www.ncbi.nlm.nih.gov/pubmed/21993673.\n\n187. Breccia M, Carmosino I, Diverio D, et al. Early detection of meningeal localization in acute p"
+    },
+    {
+      "page": 186,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_186.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_186.txt",
+      "elapsed_sec": 2.63,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4135,
+        "completion_tokens": 1409,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "199. Raffoux E, Rousselot P, Poupon J, et al. Combined treatment with arsenic trioxide and all-trans-retinoic acid in patients with relapsed acute promyelocytic leukemia. J Clin Oncol 2003;21:2326–233"
+    },
+    {
+      "page": 187,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_187.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_187.txt",
+      "elapsed_sec": 2.5,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4068,
+        "completion_tokens": 1342,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "diagnosed acute promyelocytic leukemia. The European APL Group. Blood 1998;92:2712–2718. Available at: http://www.ncbi.nlm.nih.gov/pubmed/9763554.\n\n212. Tallman MS, Andersen JW, Schiffer CA, et al. Cl"
+    },
+    {
+      "page": 188,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_188.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_188.txt",
+      "elapsed_sec": 2.6,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4126,
+        "completion_tokens": 1400,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "225. Saad M, Loh KP, Tooze JA, et al. Geriatric assessment and survival among older adults receiving postremission therapy for acute myeloid leukemia. Blood 2020;136:2715–2719. Available at: https://w"
+    },
+    {
+      "page": 189,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_189.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_189.txt",
+      "elapsed_sec": 2.58,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4109,
+        "completion_tokens": 1383,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "238. Burnett AK, Russell NH, Hunter AE, et al. Clofarabine doubles the response rate in older patients with acute myeloid leukemia but does not improve survival. Blood 2013;122:1384–1394. Available at"
+    },
+    {
+      "page": 190,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_190.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_190.txt",
+      "elapsed_sec": 2.58,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4126,
+        "completion_tokens": 1400,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "NPM1-mutated AML: results from the AMLSG 09-09 trial. Blood 2020;136:3041–3050. Available at: https://www.ncbi.nlm.nih.gov/pubmed/33367545.\n\n251. Burnett AK, Russell NH, Hills RK, et al. Optimization "
+    },
+    {
+      "page": 191,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_191.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_191.txt",
+      "elapsed_sec": 2.57,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4110,
+        "completion_tokens": 1384,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "263. Dohner H, Weber D, Krzykalla J, et al. Midostaurin plus intensive chemotherapy for younger and older patients with AML and FLT3 internal tandem duplications. Blood Adv 2022;6:5345–5355. Available"
+    },
+    {
+      "page": 192,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_192.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_192.txt",
+      "elapsed_sec": 2.56,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4089,
+        "completion_tokens": 1363,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "leukemia: a review and updated results of the Australian Leukemia Study Group. Leuk Lymphoma 1998;28:315–327. Available at: http://www.ncbi.nlm.nih.gov/pubmed/9517503.\n\n276. Weick JK, Kopecky KJ, Appe"
+    },
+    {
+      "page": 193,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_193.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_193.txt",
+      "elapsed_sec": 2.51,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4072,
+        "completion_tokens": 1346,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "AML: post hoc analysis of a randomized, phase 3 trial. J Hematol Oncol 2022;15:155. Available at: https://www.ncbi.nlm.nih.gov/pubmed/36289532.\n\n288. Lee JS, Wagner CB, Prelewicz S, et al. Efficacy an"
+    },
+    {
+      "page": 194,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_194.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_194.txt",
+      "elapsed_sec": 2.42,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4004,
+        "completion_tokens": 1278,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "300. Suciu S, Mandelli F, de Witte T, et al. Allogeneic compared with autologous stem cell transplantation in the treatment of patients younger than 46 years with acute myeloid leukemia (AML) in first"
+    },
+    {
+      "page": 195,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_195.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_195.txt",
+      "elapsed_sec": 2.58,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4107,
+        "completion_tokens": 1381,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "311. Fenaux P, Mufti GJ, Hellstrom-Lindberg E, et al. Efficacy of azacitidine compared with that of conventional care regimens in the treatment of higher-risk myelodysplastic syndromes: a randomised, "
+    },
+    {
+      "page": 196,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_196.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_196.txt",
+      "elapsed_sec": 2.45,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4030,
+        "completion_tokens": 1304,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "2019;37:1277–1284. Available at: https://www.ncbi.nlm.nih.gov/pubmed/30892988.\n\n324. Wei AH, Montesinos P, Ivanov V, et al. Venetoclax plus LDAC for newly diagnosed AML ineligible for intensive chemot"
+    },
+    {
+      "page": 197,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_197.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_197.txt",
+      "elapsed_sec": 2.59,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4120,
+        "completion_tokens": 1394,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "335. Stein EM, DiNardo CD, Pollyea DA, et al. Enasidenib in mutant IDH2 relapsed or refractory acute myeloid leukemia. Blood 2017;130:722–731. Available at: https://www.ncbi.nlm.nih.gov/pubmed/2858802"
+    },
+    {
+      "page": 198,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_198.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_198.txt",
+      "elapsed_sec": 2.54,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4077,
+        "completion_tokens": 1351,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "oral azacitidine. Blood 2022;140:1674–1685. Available at: https://www.ncbi.nlm.nih.gov/pubmed/35960871.\n\n349. Huls G, Chitu DA, Havelange V, et al. Azacitidine maintenance after intensive chemotherapy"
+    },
+    {
+      "page": 199,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_199.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_199.txt",
+      "elapsed_sec": 2.4,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4015,
+        "completion_tokens": 1289,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "361. FDA-Approved Drugs. 2024. Available at: https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm. Accessed September 9, 2024.\n\n362. Willekens C, Bazinet A, Chraibi S, et al. Reduced venetoclax e"
+    },
+    {
+      "page": 200,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_200.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_200.txt",
+      "elapsed_sec": 2.59,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4124,
+        "completion_tokens": 1398,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "376. Falini B, Martelli MP, Bolli N, et al. Acute myeloid leukemia with mutated nucleophosmin (NPM1): is it a distinct entity? Blood 2011;117:1109–1120. Available at: http://www.ncbi.nlm.nih.gov/pubme"
+    },
+    {
+      "page": 201,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_201.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_201.txt",
+      "elapsed_sec": 2.42,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4023,
+        "completion_tokens": 1297,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "390. Suzuki T, Kiyoi H, Ozeki K, et al. Clinical characteristics and prognostic implications of NPM1 mutations in acute myeloid leukemia. Blood 2005;106:2854–2861. Available at: http://www.ncbi.nlm.ni"
+    },
+    {
+      "page": 202,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_202.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_202.txt",
+      "elapsed_sec": 2.45,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4028,
+        "completion_tokens": 1302,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "Hematol 2015;94:929–938. Available at: http://www.ncbi.nlm.nih.gov/pubmed/25572170.\n\n403. Cilloni D, Renneville A, Hermitte F, et al. Real-time quantitative polymerase chain reaction detection of mini"
+    },
+    {
+      "page": 203,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_203.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_203.txt",
+      "elapsed_sec": 2.59,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4102,
+        "completion_tokens": 1376,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "minimal residual disease in patients with acute myeloid leukemia. Leuk Lymphoma 2007;48:80–88. Available at: http://www.ncbi.nlm.nih.gov/pubmed/17325851.\n\n416. Thol F, Gabdoulline R, Liebich A, et al."
+    },
+    {
+      "page": 204,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_204.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_204.txt",
+      "elapsed_sec": 2.67,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4176,
+        "completion_tokens": 1450,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "2017;18:1061–1075. Available at: https://www.ncbi.nlm.nih.gov/pubmed/28645776.\n\n429. Daver N, Perl AE, Maly J, et al. Venetoclax plus gilteritinib for FLT3-mutated relapsed/refractory acute myeloid le"
+    },
+    {
+      "page": 205,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_205.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_205.txt",
+      "elapsed_sec": 2.64,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4146,
+        "completion_tokens": 1420,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "442. Faderl S, Wetzler M, Rizzieri D, et al. Clofarabine plus cytarabine compared with cytarabine alone in older patients with relapsed or refractory acute myelogenous leukemia: results from the CLASS"
+    },
+    {
+      "page": 206,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_206.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_206.txt",
+      "elapsed_sec": 2.49,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4052,
+        "completion_tokens": 1326,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "2010;28:4207–4213. Available at: https://www.ncbi.nlm.nih.gov/pubmed/20713865.\n\n455. Jeha S, Kantarjian H, Irwin D, et al. Efficacy and safety of rasburicase, a recombinant urate oxidase (Elitek), in "
+    },
+    {
+      "page": 207,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_207.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_207.txt",
+      "elapsed_sec": 2.59,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4117,
+        "completion_tokens": 1391,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "469. Yamamoto Y, Kawashima A, Kashiwagi E, Ogata K. A Jehovah's Witness with Acute Myeloid Leukemia Successfully Treated with an Epigenetic Drug, Azacitidine: A Clue for Development of Anti-AML Therap"
+    },
+    {
+      "page": 208,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_208.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_208.txt",
+      "elapsed_sec": 2.59,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 4128,
+        "completion_tokens": 1402,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "483. Menezes J, Acquadro F, Wiseman M, et al. Exome sequencing reveals novel and recurrent mutations with clinical impact in blastic plasmacytoid dendritic cell neoplasm. Leukemia 2014;28:823–829. Ava"
+    },
+    {
+      "page": 209,
+      "image": "/data/wilson_2/de/glm_ocr/result/model_only/pages/page_209.png",
+      "text_file": "/data/wilson_2/de/glm_ocr/result/model_only/page_209.txt",
+      "elapsed_sec": 0.92,
+      "usage": {
+        "prompt_tokens": 2726,
+        "total_tokens": 3054,
+        "completion_tokens": 328,
+        "prompt_tokens_details": null
+      },
+      "text_preview": "497. Roos-Weil D, Dietrich S, Boumendil A, et al. Stem cell transplantation can provide durable disease control in blastic plasmacytoid dendritic cell neoplasm: a retrospective study from the European"
+    }
+  ],
+  "finished_at": "2026-06-24T04:45:04.236296+00:00"
+}

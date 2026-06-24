@@ -1,0 +1,9 @@
+{
+  "pdf": "/data/wilson_2/de/medical_paper_catalog/sample_pdfs/aml_nccn.pdf",
+  "output_dir": "/data/wilson_2/de/glm_ocr/result/framework",
+  "config": "/data/wilson_2/de/glm_ocr/config.yaml",
+  "layout_device": "config/default",
+  "max_pages": null,
+  "elapsed_sec": 161.54,
+  "finished_at": "2026-06-24T04:47:47.582978+00:00"
+}
