@@ -1,0 +1,26 @@
+# Python venv
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# OCR outputs
+result/
+logs/
+*.log
+
+# Models (download separately)
+models/
+
+# Apt cache
+.apt-cache/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Secrets
+.env
+*.pem

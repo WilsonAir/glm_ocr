@@ -1,0 +1,36 @@
+# GLM-OCR SDK config: self-hosted vLLM + local layout detection
+# vLLM service is deployed separately (see /data/wilson_2/de/models/scripts/serve_glm_ocr.sh)
+
+logging:
+  level: INFO
+
+pipeline:
+  maas:
+    enabled: false
+
+  ocr_api:
+    api_host: 127.0.0.1
+    api_port: 18080
+    model: glm-ocr
+    api_mode: openai
+    api_path: /v1/chat/completions
+    verify_ssl: false
+    connect_timeout: 30
+    request_timeout: 300
+    max_workers: 16
+
+  page_loader:
+    max_tokens: 2048
+    pdf_dpi: 200
+    pdf_max_pages: null
+
+  result_formatter:
+    output_format: both
+
+  layout:
+    # PP-DocLayoutV3 (auto-download on first run)
+    model_dir: /data/wilson_2/de/models/PaddlePaddle/PP-DocLayoutV3_safetensors
+    batch_size: 1
+    workers: 1
+    cuda_visible_devices: "0"
+    device: cuda:0
