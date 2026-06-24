@@ -1,0 +1,15 @@
+{
+  "mode": "framework_doc_parser",
+  "note": "layout on paddle cpu (PPU cudnn issue); VL recognition via vLLM on PPU gpu",
+  "pdf": "/data/wilson_2/de/medical_paper_catalog/sample_pdfs/aml_nccn.pdf",
+  "vllm_url": "http://127.0.0.1:18081/v1",
+  "vllm_model": "paddleocr-vl-1.6",
+  "vllm_max_concurrency": 8,
+  "device": "cpu",
+  "layout_model_dir": "/data/wilson_2/.paddlex/official_models/PP-DocLayoutV3",
+  "output_dir": "/data/wilson_2/de/paddle_ocr/result/framework",
+  "markdown_merged": "/data/wilson_2/de/paddle_ocr/result/framework/aml_nccn.md",
+  "page_markdown_pattern": "aml_nccn_<page>.md",
+  "elapsed_sec": 487.96,
+  "finished_at": "2026-06-24T08:35:02.316901+00:00"
+}

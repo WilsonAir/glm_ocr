@@ -1,45 +1,61 @@
 # glm_ocr
 
-GLM-OCR official SDK deployment for Alibaba Cloud PPU, using a remote vLLM inference service.
+GLM-OCR 与 PaddleOCR-VL 在阿里云 PPU 上的部署、推理与对比分析（vLLM + 官方 SDK）。
 
-## Features
+## 目录结构
 
-- Official `glmocr` SDK with PP-DocLayoutV3 layout detection
-- Self-hosted mode: OCR inference via existing vLLM OpenAI API
-- PPU-compatible Python env (reuses `/opt/ac2` PyTorch stack)
+```
+glm_ocr/
+├── code/                    # 代码
+│   ├── glm_ocr/             # GLM-OCR SDK 部署脚本
+│   └── paddle_ocr/          # PaddleOCR-VL 部署脚本
+├── result/                  # OCR 输出与对比
+│   ├── glm_ocr/
+│   ├── paddle_ocr/
+│   └── comparison/          # report.md, metrics.json
+├── sample/aml_nccn.pdf      # 测试 PDF（209 页）
+└── scripts/compare_ocr.py   # 对照 PDF 文本层做对比
+```
 
-## Quick start
+## GLM-OCR 快速开始
 
 ```bash
-# 1. Setup environment (pip venv on ac2, not conda)
+cd code/glm_ocr
 bash setup_env.sh
-bash download_layout_model.sh   # ModelScope: PP-DocLayoutV3
-
-# 2. Start vLLM GLM-OCR (separate process, e.g. port 18080)
-# See /data/wilson_2/de/models/scripts/serve_glm_ocr.sh
-
-# 3. Activate & parse
+bash download_layout_model.sh
 source activate_glm_ocr.sh
 python test_sdk_parse.py --max-pages 5
 ```
 
-## Configuration
+vLLM 服务见 `/data/wilson_2/de/models/scripts/serve_glm_ocr.sh`（默认端口 18080）。
 
-Edit `config.yaml`:
-
-- `pipeline.ocr_api.api_host` / `api_port` — vLLM endpoint (default `127.0.0.1:18080`)
-- `pipeline.layout.device` — layout GPU (default `cuda:0`)
-- `pipeline.page_loader.max_tokens` — keep below vLLM `max_model_len`
-
-## PPU pip
-
-Use Alibaba PPU pip index when installing extra packages:
+## PaddleOCR-VL 快速开始
 
 ```bash
-unset PIP_INDEX_URL
-pip install <package> -c pip.conf.ppu
+cd code/paddle_ocr
+bash setup_env.sh
+bash install_paddle_ppu.sh
+bash serve_paddleocr_vl.sh    # 端口 18081
+bash run_both.sh
 ```
+
+## OCR 对比分析
+
+```bash
+/opt/ac2/bin/python3 scripts/compare_ocr.py
+```
+
+以 PDF 内嵌文本为基准，输出 Token F1、序列相似度等指标，报告见 `result/comparison/report.md`。
+
+### 对比结论（aml_nccn.pdf）
+
+| 排名 | 方案 | 加权 Token F1 |
+|---:|---|---:|
+| 1 | PaddleOCR-VL model_only | 0.9519 |
+| 2 | GLM-OCR framework | 0.9401 |
+| 3 | GLM-OCR model_only | 0.8888 |
+| 4 | PaddleOCR-VL framework | 0.8342 |
 
 ## License
 
-SDK code follows glmocr / GLM-OCR upstream licenses.
+SDK 代码遵循 glmocr / GLM-OCR / PaddleOCR 上游许可。
