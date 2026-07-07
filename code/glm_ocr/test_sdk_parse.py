@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""High-quality PDF parsing via official GLM-OCR SDK + remote vLLM."""
+"""Parse PDF or image files via official GLM-OCR SDK + remote vLLM."""
 
 from __future__ import annotations
 
@@ -11,17 +11,33 @@ from pathlib import Path
 
 from glmocr import GlmOcr
 
+from input_utils import InputType, validate_input
+
 PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_CONFIG = PROJECT_ROOT / "config.yaml"
-DEFAULT_PDF = Path(
+DEFAULT_INPUT = Path(
     "/data/wilson_2/de/medical_paper_catalog/sample_pdfs/aml_nccn.pdf"
 )
 DEFAULT_OUTPUT = PROJECT_ROOT / "result"
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="GLM-OCR SDK parse test (vLLM backend)")
-    parser.add_argument("--pdf", type=Path, default=DEFAULT_PDF)
+    parser = argparse.ArgumentParser(
+        description="GLM-OCR SDK parse test (vLLM backend, PDF or image)"
+    )
+    parser.add_argument(
+        "--input",
+        "-i",
+        type=Path,
+        default=DEFAULT_INPUT,
+        help="Input PDF or image file (.pdf, .png, .jpg, ...)",
+    )
+    parser.add_argument(
+        "--pdf",
+        type=Path,
+        default=None,
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument(
@@ -33,12 +49,15 @@ def main() -> None:
         "--max-pages",
         type=int,
         default=None,
-        help="Limit PDF pages via config override",
+        help="Limit PDF pages via config override (PDF only)",
     )
     args = parser.parse_args()
 
-    if not args.pdf.is_file():
-        raise SystemExit(f"PDF not found: {args.pdf}")
+    input_path = args.pdf if args.pdf is not None else args.input
+    source, input_type = validate_input(input_path)
+
+    if args.max_pages is not None and input_type != InputType.PDF:
+        raise SystemExit("--max-pages is only supported for PDF inputs")
 
     args.output.mkdir(parents=True, exist_ok=True)
     overrides: dict = {"mode": "selfhosted"}
@@ -48,22 +67,25 @@ def main() -> None:
     started = time.perf_counter()
     layout_device = args.layout_device
 
+    print(f"Input type: {input_type.value} ({source.name})")
+
     with GlmOcr(
         config_path=str(args.config),
         layout_device=layout_device,
         **overrides,
-    ) as parser:
-        result = parser.parse(str(args.pdf))
+    ) as ocr_parser:
+        result = ocr_parser.parse(str(source))
         result.save(output_dir=str(args.output))
 
     elapsed = time.perf_counter() - started
 
     summary = {
-        "pdf": str(args.pdf.resolve()),
+        "input": str(source),
+        "input_type": input_type.value,
         "output_dir": str(args.output.resolve()),
         "config": str(args.config.resolve()),
         "layout_device": layout_device or "config/default",
-        "max_pages": args.max_pages,
+        "max_pages": args.max_pages if input_type == InputType.PDF else None,
         "elapsed_sec": round(elapsed, 2),
         "finished_at": datetime.now(timezone.utc).isoformat(),
     }

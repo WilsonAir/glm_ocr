@@ -3,7 +3,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PDF="${PDF:-/data/wilson_2/de/medical_paper_catalog/sample_pdfs/aml_nccn.pdf}"
+INPUT="${INPUT:-${PDF:-/data/wilson_2/de/medical_paper_catalog/sample_pdfs/aml_nccn.pdf}}"
 API_BASE="${API_BASE:-http://127.0.0.1:18080/v1}"
 PYTHON="${PYTHON:-/opt/ac2/bin/python3}"
 MAX_PAGES="${MAX_PAGES:-}"
@@ -16,7 +16,7 @@ if [[ -n "$MAX_PAGES" ]]; then
   EXTRA+=(--max-pages "$MAX_PAGES")
 fi
 "$PYTHON" /data/wilson_2/de/OCR_Test/test_ocr.py \
-  --pdf "$PDF" \
+  --pdf "$INPUT" \
   --result-dir "$MODEL_OUT" \
   --api-base "$API_BASE" \
   "${EXTRA[@]}"
@@ -30,7 +30,7 @@ if [[ -n "$MAX_PAGES" ]]; then
   EXTRA_SDK+=(--max-pages "$MAX_PAGES")
 fi
 python "$PROJECT_ROOT/test_sdk_parse.py" \
-  --pdf "$PDF" \
+  --input "$INPUT" \
   --output "$FRAMEWORK_OUT" \
   "${EXTRA_SDK[@]}"
 
