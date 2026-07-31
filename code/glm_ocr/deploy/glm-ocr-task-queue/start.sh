@@ -13,7 +13,7 @@ if [[ -f "$ENV_FILE" ]]; then
   set +a
 fi
 
-GLM_OCR_TASK_PYTHON="${GLM_OCR_TASK_PYTHON:-/data/wilson_2/soft/miniforge3/envs/med_rag_cuda/bin/python}"
+GLM_OCR_TASK_PYTHON="${GLM_OCR_TASK_PYTHON:-/data/wilson_2/conda/envs/med_rag_cuda/bin/python}"
 GLM_OCR_TASK_CONFIG="${GLM_OCR_TASK_CONFIG:-${PROJECT_ROOT}/config/task_queue_v2.yaml}"
 GLM_OCR_TASK_HOST="${GLM_OCR_TASK_HOST:-127.0.0.1}"
 GLM_OCR_TASK_PORT="${GLM_OCR_TASK_PORT:-18092}"
