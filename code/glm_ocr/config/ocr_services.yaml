@@ -1,0 +1,236 @@
+# OCR services on this machine — endpoints, startup, and invocation
+# Last verified: 2026-06-25
+
+services:
+  glm_ocr_vllm:
+    description: GLM-OCR vision-language model (vLLM backend)
+    host: 127.0.0.1
+    port: 18080
+    base_url: http://127.0.0.1:18080
+    api_mode: openai
+    model: glm-ocr
+    model_path: /data/wilson_2/de/models/ZhipuAI/GLM-OCR
+    gpu: cuda:2
+    gpu_memory_utilization: 0.3
+    max_model_len: 8192
+    start: |
+      deploy/ocr-vllm/start_glm_ocr.sh
+    health:
+      method: GET
+      path: /v1/models
+    invoke:
+      chat_completions:
+        method: POST
+        path: /v1/chat/completions
+        content_type: application/json
+        body_example: |
+          {
+            "model": "glm-ocr",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "image_url",
+                    "image_url": {"url": "data:image/png;base64,<BASE64>"}
+                  },
+                  {"type": "text", "text": "Text Recognition:"}
+                ]
+              }
+            ],
+            "max_tokens": 4096,
+            "temperature": 0.1
+          }
+        curl: |
+          curl -s http://127.0.0.1:18080/v1/chat/completions \
+            -H 'Content-Type: application/json' \
+            -d '{"model":"glm-ocr","messages":[{"role":"user","content":[{"type":"image_url","image_url":{"url":"data:image/png;base64,<BASE64>"}},{"type":"text","text":"Text Recognition:"}]}],"max_tokens":4096,"temperature":0.1}'
+
+  paddleocr_vl_vllm:
+    description: PaddleOCR-VL 1.6 vision-language model (vLLM backend)
+    host: 127.0.0.1
+    port: 18081
+    base_url: http://127.0.0.1:18081/v1
+    api_mode: openai
+    model: paddleocr-vl-1.6
+    model_path: /data/wilson_2/de/models/PaddlePaddle/PaddleOCR-VL-1___6
+    gpu: cuda:1
+    gpu_memory_utilization: 0.3
+    max_model_len: 8192
+    start: |
+      deploy/ocr-vllm/start_paddle_ocr.sh
+    health:
+      method: GET
+      path: /v1/models
+    invoke:
+      chat_completions:
+        method: POST
+        path: /v1/chat/completions
+        content_type: application/json
+        body_example: |
+          {
+            "model": "paddleocr-vl-1.6",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "image_url",
+                    "image_url": {"url": "data:image/png;base64,<BASE64>"}
+                  },
+                  {"type": "text", "text": "Text Recognition:"}
+                ]
+              }
+            ],
+            "max_tokens": 4096,
+            "temperature": 0.1
+          }
+        curl: |
+          curl -s http://127.0.0.1:18081/v1/chat/completions \
+            -H 'Content-Type: application/json' \
+            -d '{"model":"paddleocr-vl-1.6","messages":[{"role":"user","content":[{"type":"image_url","image_url":{"url":"data:image/png;base64,<BASE64>"}},{"type":"text","text":"Text Recognition:"}]}],"max_tokens":4096,"temperature":0.1}'
+
+  glm_ocr_parse:
+    description: |
+      Full PDF parse pipeline: PP-DocLayoutV3 layout detection + GLM-OCR vLLM (18080).
+      Recommended entry point for end-to-end PDF → Markdown.
+    host: 127.0.0.1
+    port: 18090
+    base_url: http://127.0.0.1:18090
+    sdk_config: config/glm_ocr.yaml
+    layout_model: /data/wilson_2/de/models/PaddlePaddle/PP-DocLayoutV3_safetensors
+    layout_device: cuda:1
+    backend: glm_ocr_vllm
+    start: |
+      cd /home/wilson/de/glm_ocr/code/glm_ocr
+      deploy/glm-ocr/start.sh --foreground
+    health:
+      method: GET
+      path: /health
+      response_example: '{"status":"ok","model":"glm-ocr","service":"glm-ocr-parse"}'
+    invoke:
+      parse_pdf:
+        method: POST
+        path: /parse
+        content_type: multipart/form-data
+        query_params:
+          max_pages: "optional int, omit to parse all pages (PDF only)"
+        form_fields:
+          file: PDF or image file (.png .jpg .jpeg .webp .bmp .gif)
+        response_fields:
+          filename: string
+          text: markdown string
+          chars: int
+          elapsed_sec: float
+          content_type: "pdf | image"
+        curl: |
+          curl -s -X POST 'http://127.0.0.1:18090/parse' \
+            -F 'file=@/path/to/paper.pdf'
+        curl_image: |
+          curl -s -X POST 'http://127.0.0.1:18090/parse' \
+            -F 'file=@/path/to/scan.png'
+        curl_max_pages: |
+          curl -s -X POST 'http://127.0.0.1:18090/parse?max_pages=5' \
+            -F 'file=@/path/to/paper.pdf'
+      parse_image:
+        method: POST
+        path: /parse_image
+        content_type: multipart/form-data
+        form_fields:
+          file: image file (.png .jpg .jpeg .webp .bmp .gif)
+        response_fields:
+          filename: string
+          text: markdown string
+          chars: int
+          elapsed_sec: float
+          content_type: image
+        curl: |
+          curl -s -X POST 'http://127.0.0.1:18090/parse_image' \
+            -F 'file=@/path/to/scan.png'
+      parse_bytes:
+        method: POST
+        path: /parse_bytes
+        content_type: application/pdf or image/*
+        query_params:
+          max_pages: "optional int (PDF only)"
+        body: raw PDF or image bytes
+
+  deepdoc:
+    description: RAGFlow built-in PDF parser (no local OCR service process)
+    type: ragflow_builtin
+    note: Set parser_config.layout_recognize = "DeepDOC" in datasets.json
+
+# Environment variables read by project code
+env:
+  GLM_OCR_SERVICE_URL: http://127.0.0.1:18090
+  # Remote via api_server proxy:
+  # GLM_OCR_SERVICE_URL: http://<host>:18780/glm-ocr
+
+# api_server reverse proxy (config.json → glm_ocr.proxy_enabled)
+api_server_proxy:
+  prefix: /glm-ocr
+  public_prefix: /micm-api/glm-ocr
+  upstream: http://127.0.0.1:18090
+  health: GET http://<host>:18780/glm-ocr/health
+  parse: POST http://<host>:18780/glm-ocr/parse
+
+# Project CLI invocation
+cli:
+  glm_ocr_import:
+    description: OCR PDFs from dataset CSV → cache TXT → upload Markdown chunks to RAGFlow
+    default_ocr: glm-ocr
+    commands:
+      glm_ocr: |
+        python main.py glm-ocr-import \
+          --dataset papers_diagnosis \
+          --ocr-model glm-ocr
+      paddleocr_vl: |
+        python main.py glm-ocr-import \
+          --dataset papers_diagnosis \
+          --ocr-model paddleocr-vl
+      two_stage_ablation: |
+        python main.py glm-ocr-import \
+          --dataset papers_diagnosis_ocr_ablation_two_stage \
+          --ocr-model glm-ocr
+      limit_pages: |
+        python main.py glm-ocr-import \
+          --dataset papers_diagnosis \
+          --ocr-model glm-ocr \
+          --max-pages 5 \
+          --limit 10
+
+  dataset_setup:
+    description: One-shot dataset creation with OCR parse method
+    commands:
+      glm_ocr: |
+        python scripts/dataset_setup.py \
+          --name my_dataset --oss-prefix wilson/PDF --parse-method glm-ocr
+      paddleocr_vl: |
+        python scripts/dataset_setup.py \
+          --name my_dataset --oss-prefix wilson/PDF --parse-method paddleocr-vl
+
+# Python SDK / HTTP client usage in this repo
+python:
+  glm_ocr_parse_service: |
+    from pdf_indexer.glm_ocr_parser import parse_pdf_with_glm_ocr, parse_image_with_glm_ocr
+
+    text = parse_pdf_with_glm_ocr("/path/to/paper.pdf")
+    text = parse_image_with_glm_ocr("/path/to/scan.png")
+    # override URL: service_url="http://127.0.0.1:18090"
+
+  glm_ocr_import_module: |
+    from glm_ocr_import import run_glm_ocr_import
+
+    run_glm_ocr_import(
+        dataset_key="papers_diagnosis",
+        ocr_model="glm-ocr",          # or "paddleocr-vl"
+    )
+
+# Related configs (not OCR, listed for reference)
+related:
+  embedding_vllm:
+    description: BGE-M3 embedding model (not OCR)
+    port: 8000
+    model: BAAI/bge-m3
+  ragflow_web:
+    port: 8080

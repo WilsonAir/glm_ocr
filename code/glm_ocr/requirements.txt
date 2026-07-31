@@ -1,5 +1,8 @@
 glmocr>=0.1.5
 pypdfium2>=5.6.0
+fastapi>=0.115
+uvicorn>=0.30
+python-multipart>=0.0.9
 
 # Layout / torch / transformers are provided by /opt/ac2 (PPU stack).
 # Do NOT pip install torch here — use ac2 system-site-packages via .venv.
