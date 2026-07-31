@@ -4,6 +4,8 @@ GLM-OCR v2 提供 PDF、整页病例图片和局部裁剪图片的 OCR 接口。
 UUID 隔离每次请求的输出，并根据文件类型和 `image_mode` 将任务分配到不同
 队列。
 
+提供给外部调用方的精简说明见 [API_USAGE.md](API_USAGE.md)。
+
 ## 服务地址
 
 默认监听地址：
@@ -20,7 +22,7 @@ http://127.0.0.1:18091
 
 | 队列 | 适用输入 | 等待容量 | Worker 数量 | 处理方式 |
 |---|---|---:|---:|---|
-| `pdf_layout` | PDF | 4 | 1 | PP-DocLayoutV3 + GLM-OCR |
+| `pdf_layout` | PDF | 4 | 2 | PP-DocLayoutV3 + GLM-OCR |
 | `image_layout` | 整页病例图片 | 8 | 1 | PP-DocLayoutV3 + GLM-OCR |
 | `model_only` | 局部裁剪图、普通截图 | 8 | 4 | 直接调用 vLLM |
 
@@ -86,7 +88,7 @@ curl -s http://127.0.0.1:18091/health | python -m json.tool
   "queues": {
     "pdf_layout": {
       "capacity": 4,
-      "workers": 1,
+      "workers": 2,
       "waiting": 0
     },
     "image_layout": {
@@ -327,7 +329,7 @@ deploy/glm-ocr-v2/start.sh --stop
 /data/wilson_2/de/glm_ocr/code/glm_ocr/logs/glm_ocr_v2_service.log
 ```
 
-## 环境变量
+## 配置管理
 
 可复制示例配置：
 
@@ -336,24 +338,34 @@ cp deploy/glm-ocr-v2/config.env.example \
    deploy/glm-ocr-v2/config.env
 ```
 
-主要配置项：
+业务配置统一维护在
+`code/glm_ocr/config/ocr_services_v2.yaml`，主要配置项：
 
-| 环境变量 | 默认值 | 说明 |
+| YAML 配置 | 默认值 | 说明 |
 |---|---|---|
-| `GLM_OCR_V2_HOST` | `127.0.0.1` | 服务监听地址 |
-| `GLM_OCR_V2_PORT` | `18091` | 服务端口 |
-| `GLM_OCR_V2_LAYOUT_DEVICE` | `cuda:1` | 两个 Layout Parser 使用的设备 |
-| `GLM_OCR_V2_OUTPUT_ROOT` | `result/glm_ocr/framework` | UUID 输出根目录 |
-| `GLM_OCR_V2_PDF_QUEUE_SIZE` | `4` | PDF 等待队列容量 |
-| `GLM_OCR_V2_PDF_WORKERS` | `1` | PDF Worker 数量 |
-| `GLM_OCR_V2_IMAGE_LAYOUT_QUEUE_SIZE` | `8` | 整页图片等待队列容量 |
-| `GLM_OCR_V2_IMAGE_LAYOUT_WORKERS` | `1` | 整页图片 Worker 数量 |
-| `GLM_OCR_V2_MODEL_QUEUE_SIZE` | `8` | model-only 图片等待容量 |
-| `GLM_OCR_V2_MODEL_WORKERS` | `4` | model-only Worker 数量 |
-| `GLM_OCR_V2_VLLM_URL` | `http://127.0.0.1:18080/v1/chat/completions` | vLLM 接口 |
-| `GLM_OCR_V2_VLLM_MODEL` | `glm-ocr` | vLLM 模型名 |
-| `GLM_OCR_V2_VLLM_TIMEOUT` | `300` | vLLM 请求超时，单位秒 |
+| `service.host` | `127.0.0.1` | 服务监听地址 |
+| `service.port` | `18091` | 服务端口 |
+| `service.layout_device` | `cuda:1` | Layout Parser 使用的设备 |
+| `service.output_root` | `result/glm_ocr/framework` | UUID 输出根目录 |
+| `queues.pdf_layout.capacity` | `4` | PDF 等待队列容量 |
+| `queues.pdf_layout.workers` | `2` | PDF Worker 数量，每个 Worker 独立 Parser |
+| `queues.image_layout.capacity` | `8` | 整页图片等待队列容量 |
+| `queues.image_layout.workers` | `1` | 整页图片 Worker 数量 |
+| `queues.model_only.capacity` | `8` | model-only 图片等待容量 |
+| `queues.model_only.workers` | `4` | model-only Worker 数量 |
+| `vllm.url` | `http://127.0.0.1:18080/v1/chat/completions` | vLLM 接口 |
+| `vllm.model` | `glm-ocr` | vLLM 模型名 |
+| `vllm.timeout` | `300` | vLLM 请求超时，单位秒 |
 | `PPU_RTC_CACHE_DIR` | `/data/wilson_2/cache/rtccache` | PPU RTC 实际缓存目录 |
 
 队列 Worker 数量调高后，可能增加 Layout 显存、vLLM 并发和主机内存压力，修改
 前应先进行并发压测。
+
+长期配置统一维护在：
+
+```text
+code/glm_ocr/config/ocr_services_v2.yaml
+```
+
+启动脚本会将该文件传给 v2 服务。`config.env` 只保留 Python、PPU SDK 和
+RTC 缓存等启动前必须确定的基础环境配置。

@@ -4,6 +4,7 @@ fastapi>=0.115
 uvicorn>=0.30
 python-multipart>=0.0.9
 requests>=2.32.0
+PyYAML>=6.0.2
 
 # Layout / torch / transformers are provided by /opt/ac2 (PPU stack).
 # Do NOT pip install torch here — use ac2 system-site-packages via .venv.

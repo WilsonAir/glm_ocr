@@ -17,6 +17,7 @@ fi
 GLM_OCR_V2_CONDA_BASE="${GLM_OCR_V2_CONDA_BASE:-/data/wilson_2/soft/miniforge3}"
 GLM_OCR_V2_CONDA_ENV="${GLM_OCR_V2_CONDA_ENV:-med_rag_cuda}"
 GLM_OCR_V2_PYTHON="${GLM_OCR_V2_PYTHON:-${GLM_OCR_V2_CONDA_BASE}/envs/${GLM_OCR_V2_CONDA_ENV}/bin/python}"
+GLM_OCR_V2_SERVICE_CONFIG="${GLM_OCR_V2_SERVICE_CONFIG:-${PROJECT_ROOT}/config/ocr_services_v2.yaml}"
 GLM_OCR_V2_CONFIG="${GLM_OCR_V2_CONFIG:-${PROJECT_ROOT}/config/glm_ocr.yaml}"
 GLM_OCR_V2_HOST="${GLM_OCR_V2_HOST:-127.0.0.1}"
 GLM_OCR_V2_PORT="${GLM_OCR_V2_PORT:-18091}"
@@ -82,6 +83,10 @@ esac
   echo "GLM-OCR v2 config not found: $GLM_OCR_V2_CONFIG" >&2
   exit 1
 }
+[[ -f "$GLM_OCR_V2_SERVICE_CONFIG" ]] || {
+  echo "GLM-OCR v2 service config not found: $GLM_OCR_V2_SERVICE_CONFIG" >&2
+  exit 1
+}
 [[ -d "$PPU_SDK" ]] || {
   echo "PPU SDK directory not found: $PPU_SDK" >&2
   exit 1
@@ -131,11 +136,7 @@ export PYTHONUNBUFFERED=1
 cmd=(
   "$GLM_OCR_V2_PYTHON"
   "${PROJECT_ROOT}/services/glm_ocr_v2/service.py"
-  --host "$GLM_OCR_V2_HOST"
-  --port "$GLM_OCR_V2_PORT"
-  --config "$GLM_OCR_V2_CONFIG"
-  --layout-device "$GLM_OCR_V2_LAYOUT_DEVICE"
-  --output-root "$GLM_OCR_V2_OUTPUT_ROOT"
+  --service-config "$GLM_OCR_V2_SERVICE_CONFIG"
 )
 
 if [[ "${1:-}" == "--foreground" ]]; then

@@ -15,11 +15,13 @@ import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
 import requests
+import yaml
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -32,6 +34,7 @@ logger = logging.getLogger("glm-ocr-service-v2")
 GLM_OCR_ROOT = Path(__file__).resolve().parents[2]
 REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_CONFIG = GLM_OCR_ROOT / "config" / "glm_ocr.yaml"
+DEFAULT_SERVICE_CONFIG = GLM_OCR_ROOT / "config" / "ocr_services_v2.yaml"
 DEFAULT_OUTPUT_ROOT = REPOSITORY_ROOT / "result" / "glm_ocr" / "framework"
 DEFAULT_PORT = 18091
 
@@ -48,8 +51,7 @@ MIME_BY_SUFFIX = {
 }
 BEIJING_TIMEZONE = ZoneInfo("Asia/Shanghai")
 
-_pdf_parser: Any = None
-_image_layout_parser: Any = None
+_layout_parsers: dict[str, Any] = {}
 _parser_config_path = DEFAULT_CONFIG
 _parser_layout_device: str | None = None
 _output_root = DEFAULT_OUTPUT_ROOT
@@ -58,7 +60,7 @@ _parser_init_lock = threading.Lock()
 _pdf_queue_capacity = 4
 _image_layout_queue_capacity = 8
 _model_queue_capacity = 8
-_pdf_workers = 1
+_pdf_workers = 2
 _image_layout_workers = 1
 _model_workers = 4
 _vllm_url = "http://127.0.0.1:18080/v1/chat/completions"
@@ -81,15 +83,14 @@ class QueueJob:
     future: asyncio.Future[dict[str, Any]]
 
 
-def _get_parser(content_type: Literal["pdf", "image"]) -> Any:
-    """Lazily construct one official SDK parser for each layout queue."""
-    global _pdf_parser, _image_layout_parser
-    parser = _pdf_parser if content_type == "pdf" else _image_layout_parser
+def _get_parser(parser_key: str) -> Any:
+    """Lazily construct one official SDK parser for each layout worker."""
+    parser = _layout_parsers.get(parser_key)
     if parser is not None:
         return parser
 
     with _parser_init_lock:
-        parser = _pdf_parser if content_type == "pdf" else _image_layout_parser
+        parser = _layout_parsers.get(parser_key)
         if parser is not None:
             return parser
 
@@ -109,11 +110,8 @@ def _get_parser(content_type: Literal["pdf", "image"]) -> Any:
             layout_device=_parser_layout_device,
             mode="selfhosted",
         )
-        if content_type == "pdf":
-            _pdf_parser = parser
-        else:
-            _image_layout_parser = parser
-        logger.info("GLM-OCR %s layout parser ready", content_type)
+        _layout_parsers[parser_key] = parser
+        logger.info("GLM-OCR layout parser ready: %s", parser_key)
         return parser
 
 
@@ -191,13 +189,13 @@ def _complete_response(
     }
 
 
-def _run_layout_job(job: QueueJob) -> dict[str, Any]:
+def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
     """Run the official layout pipeline and persist all SDK artifacts."""
     job_dir = _safe_job_dir(job.job_id)
     started = time.perf_counter()
     _update_metadata(job_dir, status="running", started_at=_beijing_now())
     try:
-        result = _get_parser(job.content_type).parse(job.data)
+        result = _get_parser(parser_key).parse(job.data)
         # Official SDK saves Markdown/JSON, imgs/, and layout_vis/ when present.
         result.save(output_dir=str(job_dir))
         markdown = _extract_markdown(result)
@@ -300,7 +298,11 @@ async def lifespan(_: FastAPI):
     _model_queue = asyncio.Queue(maxsize=_model_queue_capacity)
     workers = [
         asyncio.create_task(
-            _queue_worker(_pdf_queue, _run_layout_job, f"pdf-layout-{index}")
+            _queue_worker(
+                _pdf_queue,
+                partial(_run_layout_job, parser_key=f"pdf-{index}"),
+                f"pdf-layout-{index}",
+            )
         )
         for index in range(_pdf_workers)
     ]
@@ -308,7 +310,7 @@ async def lifespan(_: FastAPI):
         asyncio.create_task(
             _queue_worker(
                 _image_layout_queue,
-                _run_layout_job,
+                partial(_run_layout_job, parser_key=f"image-{index}"),
                 f"image-layout-{index}",
             )
         )
@@ -517,23 +519,30 @@ async def download_artifact(job_id: str, artifact_path: str) -> FileResponse:
 def main() -> None:
     arg_parser = argparse.ArgumentParser(description="Queued GLM-OCR Parse Service v2")
     arg_parser.add_argument(
-        "--host", default=os.environ.get("GLM_OCR_V2_HOST", "127.0.0.1")
+        "--service-config",
+        default=os.environ.get(
+            "GLM_OCR_V2_SERVICE_CONFIG",
+            str(DEFAULT_SERVICE_CONFIG),
+        ),
+    )
+    arg_parser.add_argument(
+        "--host", default=None
     )
     arg_parser.add_argument(
         "--port",
         type=int,
-        default=int(os.environ.get("GLM_OCR_V2_PORT", DEFAULT_PORT)),
+        default=None,
     )
     arg_parser.add_argument(
-        "--config", default=os.environ.get("GLM_OCR_V2_CONFIG", str(DEFAULT_CONFIG))
+        "--config", default=None
     )
     arg_parser.add_argument(
         "--layout-device",
-        default=os.environ.get("GLM_OCR_V2_LAYOUT_DEVICE", "cuda:1"),
+        default=None,
     )
     arg_parser.add_argument(
         "--output-root",
-        default=os.environ.get("GLM_OCR_V2_OUTPUT_ROOT", str(DEFAULT_OUTPUT_ROOT)),
+        default=None,
     )
     args = arg_parser.parse_args()
 
@@ -541,38 +550,57 @@ def main() -> None:
     global _pdf_queue_capacity, _image_layout_queue_capacity, _model_queue_capacity
     global _pdf_workers, _image_layout_workers, _model_workers
     global _vllm_url, _vllm_model, _vllm_timeout, _vllm_max_tokens
-    _parser_config_path = Path(args.config)
-    _parser_layout_device = args.layout_device
-    _output_root = Path(args.output_root).expanduser().resolve()
+    service_config_path = Path(args.service_config).expanduser().resolve()
+    if not service_config_path.is_file():
+        raise FileNotFoundError(f"GLM-OCR v2 service config not found: {service_config_path}")
+    service_config = yaml.safe_load(service_config_path.read_text(encoding="utf-8")) or {}
+    service = service_config.get("service", {})
+    queues = service_config.get("queues", {})
+    vllm = service_config.get("vllm", {})
+
+    def config_path(value: str | None, fallback: Path) -> Path:
+        path = Path(value) if value else fallback
+        if not path.is_absolute():
+            path = REPOSITORY_ROOT / path
+        return path.expanduser().resolve()
+
+    host = args.host or str(service.get("host", "127.0.0.1"))
+    port = args.port or int(service.get("port", DEFAULT_PORT))
+    _parser_config_path = config_path(args.config or service.get("sdk_config"), DEFAULT_CONFIG)
+    _parser_layout_device = args.layout_device or str(
+        service.get("layout_device", "cuda:1")
+    )
+    _output_root = config_path(
+        args.output_root or service.get("output_root"),
+        DEFAULT_OUTPUT_ROOT,
+    )
     _output_root.mkdir(parents=True, exist_ok=True)
 
-    _pdf_queue_capacity = int(os.environ.get("GLM_OCR_V2_PDF_QUEUE_SIZE", "4"))
-    _image_layout_queue_capacity = int(
-        os.environ.get("GLM_OCR_V2_IMAGE_LAYOUT_QUEUE_SIZE", "8")
+    pdf_queue = queues.get("pdf_layout", {})
+    image_layout_queue = queues.get("image_layout", {})
+    model_queue = queues.get("model_only", {})
+    _pdf_queue_capacity = int(pdf_queue.get("capacity", 4))
+    _image_layout_queue_capacity = int(image_layout_queue.get("capacity", 8))
+    _model_queue_capacity = int(model_queue.get("capacity", 8))
+    _pdf_workers = int(pdf_queue.get("workers", 2))
+    _image_layout_workers = int(image_layout_queue.get("workers", 1))
+    _model_workers = int(model_queue.get("workers", 4))
+    _vllm_url = str(
+        vllm.get("url", "http://127.0.0.1:18080/v1/chat/completions")
     )
-    _model_queue_capacity = int(os.environ.get("GLM_OCR_V2_MODEL_QUEUE_SIZE", "8"))
-    _pdf_workers = int(os.environ.get("GLM_OCR_V2_PDF_WORKERS", "1"))
-    _image_layout_workers = int(
-        os.environ.get("GLM_OCR_V2_IMAGE_LAYOUT_WORKERS", "1")
-    )
-    _model_workers = int(os.environ.get("GLM_OCR_V2_MODEL_WORKERS", "4"))
-    _vllm_url = os.environ.get(
-        "GLM_OCR_V2_VLLM_URL",
-        "http://127.0.0.1:18080/v1/chat/completions",
-    )
-    _vllm_model = os.environ.get("GLM_OCR_V2_VLLM_MODEL", "glm-ocr")
-    _vllm_timeout = int(os.environ.get("GLM_OCR_V2_VLLM_TIMEOUT", "300"))
-    _vllm_max_tokens = int(os.environ.get("GLM_OCR_V2_VLLM_MAX_TOKENS", "4096"))
+    _vllm_model = str(vllm.get("model", "glm-ocr"))
+    _vllm_timeout = int(vllm.get("timeout", 300))
+    _vllm_max_tokens = int(vllm.get("max_tokens", 4096))
 
     import uvicorn
 
     logger.info(
         "Starting GLM-OCR v2 on %s:%d (output=%s)",
-        args.host,
-        args.port,
+        host,
+        port,
         _output_root,
     )
-    uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+    uvicorn.run(app, host=host, port=port, log_level="info")
 
 
 if __name__ == "__main__":
