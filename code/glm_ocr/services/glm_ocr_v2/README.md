@@ -12,10 +12,18 @@ contains JSON, Markdown, `imgs/` image crops, `layout_vis/` previews, and a
 service-owned `job.json` manifest. The SDK may add a document-name subdirectory
 inside the UUID directory.
 
-Start from `code/glm_ocr`:
+Start in the background from `code/glm_ocr`:
 
 ```bash
-python services/glm_ocr_v2/service.py
+deploy/glm-ocr-v2/start.sh
+```
+
+Manage the service:
+
+```bash
+deploy/glm-ocr-v2/start.sh --foreground
+deploy/glm-ocr-v2/start.sh --status
+deploy/glm-ocr-v2/start.sh --stop
 ```
 
 The default address is `http://127.0.0.1:18091`. Configuration can be
