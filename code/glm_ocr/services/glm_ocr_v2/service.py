@@ -14,8 +14,10 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
+from zoneinfo import ZoneInfo
 
 import requests
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
@@ -44,6 +46,7 @@ MIME_BY_SUFFIX = {
     ".gif": "image/gif",
     ".webp": "image/webp",
 }
+BEIJING_TIMEZONE = ZoneInfo("Asia/Shanghai")
 
 _pdf_parser: Any = None
 _image_layout_parser: Any = None
@@ -149,6 +152,11 @@ def _extract_markdown(result: Any) -> str:
     return ""
 
 
+def _beijing_now() -> str:
+    """Return an ISO 8601 timestamp in Beijing time."""
+    return datetime.now(BEIJING_TIMEZONE).isoformat(timespec="seconds")
+
+
 def _read_metadata(job_dir: Path) -> dict[str, Any]:
     path = job_dir / "job.json"
     if not path.is_file():
@@ -186,8 +194,8 @@ def _complete_response(
 def _run_layout_job(job: QueueJob) -> dict[str, Any]:
     """Run the official layout pipeline and persist all SDK artifacts."""
     job_dir = _safe_job_dir(job.job_id)
-    started = time.time()
-    _update_metadata(job_dir, status="running", started_at=started)
+    started = time.perf_counter()
+    _update_metadata(job_dir, status="running", started_at=_beijing_now())
     try:
         result = _get_parser(job.content_type).parse(job.data)
         # Official SDK saves Markdown/JSON, imgs/, and layout_vis/ when present.
@@ -197,16 +205,16 @@ def _run_layout_job(job: QueueJob) -> dict[str, Any]:
             job_dir,
             status="completed",
             chars=len(markdown),
-            elapsed_sec=round(time.time() - started, 2),
-            finished_at=time.time(),
+            elapsed_sec=round(time.perf_counter() - started, 2),
+            finished_at=_beijing_now(),
         )
         return _complete_response(job_dir, metadata, markdown)
     except Exception as exc:
         _update_metadata(
             job_dir,
             status="failed",
-            elapsed_sec=round(time.time() - started, 2),
-            finished_at=time.time(),
+            elapsed_sec=round(time.perf_counter() - started, 2),
+            finished_at=_beijing_now(),
             error=str(exc),
         )
         logger.exception("Layout parse failed for %s (job=%s)", job.filename, job.job_id)
@@ -216,8 +224,8 @@ def _run_layout_job(job: QueueJob) -> dict[str, Any]:
 def _run_model_only_job(job: QueueJob) -> dict[str, Any]:
     """Send one image directly to vLLM and persist text plus raw response."""
     job_dir = _safe_job_dir(job.job_id)
-    started = time.time()
-    _update_metadata(job_dir, status="running", started_at=started)
+    started = time.perf_counter()
+    _update_metadata(job_dir, status="running", started_at=_beijing_now())
     suffix = Path(job.filename).suffix.lower()
     mime = MIME_BY_SUFFIX.get(suffix, "image/png")
     image_url = f"data:{mime};base64,{base64.b64encode(job.data).decode('ascii')}"
@@ -247,16 +255,16 @@ def _run_model_only_job(job: QueueJob) -> dict[str, Any]:
             job_dir,
             status="completed",
             chars=len(markdown),
-            elapsed_sec=round(time.time() - started, 2),
-            finished_at=time.time(),
+            elapsed_sec=round(time.perf_counter() - started, 2),
+            finished_at=_beijing_now(),
         )
         return _complete_response(job_dir, metadata, markdown)
     except Exception as exc:
         _update_metadata(
             job_dir,
             status="failed",
-            elapsed_sec=round(time.time() - started, 2),
-            finished_at=time.time(),
+            elapsed_sec=round(time.perf_counter() - started, 2),
+            finished_at=_beijing_now(),
             error=str(exc),
         )
         logger.exception("Model-only OCR failed for %s (job=%s)", job.filename, job.job_id)
@@ -390,7 +398,7 @@ async def _enqueue(
     job_id = str(uuid.uuid4())
     job_dir = _safe_job_dir(job_id)
     job_dir.mkdir(parents=True, exist_ok=False)
-    created = time.time()
+    created = _beijing_now()
     _write_metadata(job_dir, {
         "job_id": job_id,
         "status": "queued",
