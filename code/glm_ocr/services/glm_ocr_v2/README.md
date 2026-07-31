@@ -1,6 +1,16 @@
 # GLM-OCR persistent parse API v2
 
-The v2 service calls the official SDK's `result.save()` for every request.
+The v2 service uses three bounded queues:
+
+- PDF layout queue: capacity 4, one worker.
+- Image layout queue: capacity 8, one worker. Full-page/medical images use
+  this queue.
+- Model-only queue: capacity 8, four workers. Cropped images call vLLM
+  directly without waiting for the layout parser.
+
+The two layout queues use separate lazily initialized SDK parser instances so
+an image layout job does not wait for a large PDF parser call.
+
 Each request gets an independent UUID directory below:
 
 ```text
@@ -38,6 +48,15 @@ Parse and inspect a result:
 ```bash
 curl -X POST http://127.0.0.1:18091/parse \
   -F 'file=@/path/to/document.pdf'
+
+# Medical/full-page images use layout by default.
+curl -X POST http://127.0.0.1:18091/parse \
+  -F 'file=@/path/to/medical-page.jpg'
+
+# Cropped/simple images explicitly bypass layout.
+curl -X POST \
+  'http://127.0.0.1:18091/parse?image_mode=model_only' \
+  -F 'file=@/path/to/crop.jpg'
 
 curl http://127.0.0.1:18091/results/<uuid>
 curl -OJ http://127.0.0.1:18091/results/<uuid>/<artifact-path>

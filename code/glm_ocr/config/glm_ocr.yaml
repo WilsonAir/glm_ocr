@@ -9,6 +9,9 @@ pipeline:
   maas:
     enabled: false
 
+  # Maximum parallel region OCR requests for the single active layout job.
+  max_workers: 4
+
   ocr_api:
     api_host: 127.0.0.1
     api_port: 18080
@@ -18,6 +21,7 @@ pipeline:
     verify_ssl: false
     connect_timeout: 30
     request_timeout: 300
+    # Kept for compatibility with older glmocr releases.
     max_workers: 4
 
   page_loader:

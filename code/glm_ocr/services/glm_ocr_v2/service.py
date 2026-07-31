@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
-"""GLM-OCR HTTP service that persists the complete official SDK result."""
+"""GLM-OCR v2 service with separate layout and model-only queues."""
 
 from __future__ import annotations
 
 import argparse
 import asyncio
+import base64
 import json
 import logging
 import os
 import threading
 import time
 import uuid
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+import requests
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 
 logging.basicConfig(
@@ -32,26 +36,59 @@ DEFAULT_PORT = 18091
 SUPPORTED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp"}
 SUPPORTED_PDF_SUFFIXES = {".pdf"}
 SUPPORTED_SUFFIXES = SUPPORTED_IMAGE_SUFFIXES | SUPPORTED_PDF_SUFFIXES
+MIME_BY_SUFFIX = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".bmp": "image/bmp",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+}
 
-app = FastAPI(title="GLM-OCR Persistent Parse Service", version="2.0.0")
-
-_parser: Any = None
+_pdf_parser: Any = None
+_image_layout_parser: Any = None
 _parser_config_path = DEFAULT_CONFIG
 _parser_layout_device: str | None = None
 _output_root = DEFAULT_OUTPUT_ROOT
 _parser_init_lock = threading.Lock()
-_parse_lock = threading.Lock()
+
+_pdf_queue_capacity = 4
+_image_layout_queue_capacity = 8
+_model_queue_capacity = 8
+_pdf_workers = 1
+_image_layout_workers = 1
+_model_workers = 4
+_vllm_url = "http://127.0.0.1:18080/v1/chat/completions"
+_vllm_model = "glm-ocr"
+_vllm_timeout = 300
+_vllm_max_tokens = 4096
+
+_pdf_queue: asyncio.Queue[QueueJob] | None = None
+_image_layout_queue: asyncio.Queue[QueueJob] | None = None
+_model_queue: asyncio.Queue[QueueJob] | None = None
 
 
-def _get_parser() -> Any:
-    """Lazily construct the shared official SDK parser exactly once."""
-    global _parser
-    if _parser is not None:
-        return _parser
+@dataclass(slots=True)
+class QueueJob:
+    job_id: str
+    filename: str
+    data: bytes
+    content_type: Literal["pdf", "image"]
+    mode: Literal["layout", "model_only"]
+    future: asyncio.Future[dict[str, Any]]
+
+
+def _get_parser(content_type: Literal["pdf", "image"]) -> Any:
+    """Lazily construct one official SDK parser for each layout queue."""
+    global _pdf_parser, _image_layout_parser
+    parser = _pdf_parser if content_type == "pdf" else _image_layout_parser
+    if parser is not None:
+        return parser
 
     with _parser_init_lock:
-        if _parser is not None:
-            return _parser
+        parser = _pdf_parser if content_type == "pdf" else _image_layout_parser
+        if parser is not None:
+            return parser
 
         from glmocr import GlmOcr
 
@@ -64,22 +101,28 @@ def _get_parser() -> Any:
             config_path,
             _parser_layout_device or "default",
         )
-        _parser = GlmOcr(
+        parser = GlmOcr(
             config_path=str(config_path),
             layout_device=_parser_layout_device,
             mode="selfhosted",
         )
-        logger.info("GLM-OCR parser ready")
-        return _parser
+        if content_type == "pdf":
+            _pdf_parser = parser
+        else:
+            _image_layout_parser = parser
+        logger.info("GLM-OCR %s layout parser ready", content_type)
+        return parser
 
 
-def _validate_filename(filename: str, *, images_only: bool = False) -> str:
+def _detect_content_type(data: bytes, filename: str) -> tuple[str, str]:
+    """Validate content using magic bytes first and return type plus suffix."""
     suffix = Path(filename).suffix.lower()
-    allowed = SUPPORTED_IMAGE_SUFFIXES if images_only else SUPPORTED_SUFFIXES
-    if suffix not in allowed:
-        accepted = ", ".join(sorted(allowed))
+    if data.startswith(b"%PDF-"):
+        return "pdf", ".pdf"
+    if suffix not in SUPPORTED_IMAGE_SUFFIXES:
+        accepted = ", ".join(sorted(SUPPORTED_SUFFIXES))
         raise ValueError(f"Unsupported file type. Accepted: {accepted}")
-    return suffix
+    return "image", suffix
 
 
 def _safe_job_dir(job_id: str) -> Path:
@@ -106,6 +149,13 @@ def _extract_markdown(result: Any) -> str:
     return ""
 
 
+def _read_metadata(job_dir: Path) -> dict[str, Any]:
+    path = job_dir / "job.json"
+    if not path.is_file():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def _write_metadata(job_dir: Path, metadata: dict[str, Any]) -> None:
     (job_dir / "job.json").write_text(
         json.dumps(metadata, ensure_ascii=False, indent=2),
@@ -113,127 +163,327 @@ def _write_metadata(job_dir: Path, metadata: dict[str, Any]) -> None:
     )
 
 
-def _parse_and_save(
-    data: bytes,
-    *,
-    filename: str,
-    job_id: str,
-    content_type: str,
+def _update_metadata(job_dir: Path, **fields: Any) -> dict[str, Any]:
+    metadata = _read_metadata(job_dir)
+    metadata.update(fields)
+    _write_metadata(job_dir, metadata)
+    return metadata
+
+
+def _complete_response(
+    job_dir: Path,
+    metadata: dict[str, Any],
+    markdown: str,
 ) -> dict[str, Any]:
-    """Run layout/OCR and save every artifact exposed by the official SDK."""
-    job_dir = _safe_job_dir(job_id)
-    job_dir.mkdir(parents=True, exist_ok=False)
-    started = time.time()
-
-    initial_metadata: dict[str, Any] = {
-        "job_id": job_id,
-        "status": "processing",
-        "filename": filename,
-        "content_type": content_type,
-        "created_at": started,
-        "output_dir": str(job_dir),
+    return {
+        **metadata,
+        "text": markdown,
+        "artifacts": _relative_files(job_dir),
+        "result_url": f"/results/{metadata['job_id']}",
     }
-    _write_metadata(job_dir, initial_metadata)
 
+
+def _run_layout_job(job: QueueJob) -> dict[str, Any]:
+    """Run the official layout pipeline and persist all SDK artifacts."""
+    job_dir = _safe_job_dir(job.job_id)
+    started = time.time()
+    _update_metadata(job_dir, status="running", started_at=started)
     try:
-        parser = _get_parser()
-        with _parse_lock:
-            result = parser.parse(data)
-            # Official SDK persists JSON/Markdown, image crops under imgs/, and
-            # layout visualizations under layout_vis/ when those are available.
-            result.save(output_dir=str(job_dir))
-
+        result = _get_parser(job.content_type).parse(job.data)
+        # Official SDK saves Markdown/JSON, imgs/, and layout_vis/ when present.
+        result.save(output_dir=str(job_dir))
         markdown = _extract_markdown(result)
-        elapsed = round(time.time() - started, 2)
-        metadata = {
-            **initial_metadata,
-            "status": "completed",
-            "chars": len(markdown),
-            "elapsed_sec": elapsed,
-        }
-        _write_metadata(job_dir, metadata)
-        files = _relative_files(job_dir)
-        return {
-            **metadata,
-            "text": markdown,
-            "artifacts": files,
-            "result_url": f"/results/{job_id}",
-        }
+        metadata = _update_metadata(
+            job_dir,
+            status="completed",
+            chars=len(markdown),
+            elapsed_sec=round(time.time() - started, 2),
+            finished_at=time.time(),
+        )
+        return _complete_response(job_dir, metadata, markdown)
     except Exception as exc:
-        elapsed = round(time.time() - started, 2)
-        metadata = {
-            **initial_metadata,
-            "status": "failed",
-            "elapsed_sec": elapsed,
-            "error": str(exc),
-        }
-        _write_metadata(job_dir, metadata)
-        logger.exception("Parse failed for %s (job=%s)", filename, job_id)
+        _update_metadata(
+            job_dir,
+            status="failed",
+            elapsed_sec=round(time.time() - started, 2),
+            finished_at=time.time(),
+            error=str(exc),
+        )
+        logger.exception("Layout parse failed for %s (job=%s)", job.filename, job.job_id)
         raise
 
 
-async def _handle_upload(
+def _run_model_only_job(job: QueueJob) -> dict[str, Any]:
+    """Send one image directly to vLLM and persist text plus raw response."""
+    job_dir = _safe_job_dir(job.job_id)
+    started = time.time()
+    _update_metadata(job_dir, status="running", started_at=started)
+    suffix = Path(job.filename).suffix.lower()
+    mime = MIME_BY_SUFFIX.get(suffix, "image/png")
+    image_url = f"data:{mime};base64,{base64.b64encode(job.data).decode('ascii')}"
+    payload = {
+        "model": _vllm_model,
+        "messages": [{
+            "role": "user",
+            "content": [
+                {"type": "image_url", "image_url": {"url": image_url}},
+                {"type": "text", "text": "Text Recognition:"},
+            ],
+        }],
+        "max_tokens": _vllm_max_tokens,
+        "temperature": 0.0,
+    }
+    try:
+        response = requests.post(_vllm_url, json=payload, timeout=_vllm_timeout)
+        response.raise_for_status()
+        raw_result = response.json()
+        markdown = raw_result["choices"][0]["message"]["content"]
+        (job_dir / "result.md").write_text(markdown, encoding="utf-8")
+        (job_dir / "result.json").write_text(
+            json.dumps(raw_result, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        metadata = _update_metadata(
+            job_dir,
+            status="completed",
+            chars=len(markdown),
+            elapsed_sec=round(time.time() - started, 2),
+            finished_at=time.time(),
+        )
+        return _complete_response(job_dir, metadata, markdown)
+    except Exception as exc:
+        _update_metadata(
+            job_dir,
+            status="failed",
+            elapsed_sec=round(time.time() - started, 2),
+            finished_at=time.time(),
+            error=str(exc),
+        )
+        logger.exception("Model-only OCR failed for %s (job=%s)", job.filename, job.job_id)
+        raise
+
+
+async def _queue_worker(
+    queue: asyncio.Queue[QueueJob],
+    runner: Any,
+    worker_name: str,
+) -> None:
+    while True:
+        job = await queue.get()
+        try:
+            result = await asyncio.to_thread(runner, job)
+            if not job.future.cancelled():
+                job.future.set_result(result)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            if not job.future.cancelled():
+                job.future.set_exception(exc)
+        finally:
+            queue.task_done()
+            logger.info("%s finished job=%s", worker_name, job.job_id)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    global _pdf_queue, _image_layout_queue, _model_queue
+    _pdf_queue = asyncio.Queue(maxsize=_pdf_queue_capacity)
+    _image_layout_queue = asyncio.Queue(maxsize=_image_layout_queue_capacity)
+    _model_queue = asyncio.Queue(maxsize=_model_queue_capacity)
+    workers = [
+        asyncio.create_task(
+            _queue_worker(_pdf_queue, _run_layout_job, f"pdf-layout-{index}")
+        )
+        for index in range(_pdf_workers)
+    ]
+    workers.extend(
+        asyncio.create_task(
+            _queue_worker(
+                _image_layout_queue,
+                _run_layout_job,
+                f"image-layout-{index}",
+            )
+        )
+        for index in range(_image_layout_workers)
+    )
+    workers.extend(
+        asyncio.create_task(
+            _queue_worker(_model_queue, _run_model_only_job, f"model-{index}")
+        )
+        for index in range(_model_workers)
+    )
+    logger.info(
+        "Queues ready: PDF layout capacity=%d workers=%d; "
+        "image layout capacity=%d workers=%d; model capacity=%d workers=%d",
+        _pdf_queue_capacity,
+        _pdf_workers,
+        _image_layout_queue_capacity,
+        _image_layout_workers,
+        _model_queue_capacity,
+        _model_workers,
+    )
+    try:
+        yield
+    finally:
+        for worker in workers:
+            worker.cancel()
+        await asyncio.gather(*workers, return_exceptions=True)
+
+
+app = FastAPI(
+    title="GLM-OCR Queued Parse Service",
+    version="2.1.0",
+    lifespan=lifespan,
+)
+
+
+async def _enqueue(
     file: UploadFile,
     *,
+    image_mode: Literal["auto", "layout", "model_only"],
     images_only: bool,
 ) -> JSONResponse:
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename")
-    try:
-        suffix = _validate_filename(file.filename, images_only=images_only)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
     data = await file.read()
     if not data:
         raise HTTPException(status_code=400, detail="Empty file")
+    try:
+        content_type, _ = _detect_content_type(data, file.filename)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if images_only and content_type != "image":
+        raise HTTPException(status_code=400, detail="Only image files are accepted")
+    if content_type == "pdf" and image_mode == "model_only":
+        raise HTTPException(
+            status_code=400,
+            detail="PDF requires layout mode; model_only accepts images only",
+        )
+
+    # Medical/full-page images use layout by default. Cropped images must opt in
+    # to model_only explicitly.
+    mode: Literal["layout", "model_only"] = (
+        "model_only" if content_type == "image" and image_mode == "model_only"
+        else "layout"
+    )
+    if mode == "model_only":
+        queue = _model_queue
+        queue_name = "model_only"
+    elif content_type == "pdf":
+        queue = _pdf_queue
+        queue_name = "pdf_layout"
+    else:
+        queue = _image_layout_queue
+        queue_name = "image_layout"
+    if queue is None:
+        raise HTTPException(status_code=503, detail="Service queue is not ready")
+    if queue.full():
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "message": f"{queue_name} queue is full",
+                "retry_after_sec": 10,
+            },
+            headers={"Retry-After": "10"},
+        )
 
     job_id = str(uuid.uuid4())
-    content_type = "pdf" if suffix in SUPPORTED_PDF_SUFFIXES else "image"
+    job_dir = _safe_job_dir(job_id)
+    job_dir.mkdir(parents=True, exist_ok=False)
+    created = time.time()
+    _write_metadata(job_dir, {
+        "job_id": job_id,
+        "status": "queued",
+        "queue": queue_name,
+        "filename": file.filename,
+        "content_type": content_type,
+        "image_mode": image_mode,
+        "created_at": created,
+        "output_dir": str(job_dir),
+    })
+    future: asyncio.Future[dict[str, Any]] = asyncio.get_running_loop().create_future()
+    job = QueueJob(
+        job_id=job_id,
+        filename=file.filename,
+        data=data,
+        content_type=content_type,
+        mode=mode,
+        future=future,
+    )
+    try:
+        queue.put_nowait(job)
+    except asyncio.QueueFull as exc:
+        _update_metadata(
+            job_dir,
+            status="rejected",
+            error=f"{queue_name} queue is full",
+        )
+        raise HTTPException(
+            status_code=429,
+            detail={"message": f"{queue_name} queue is full", "job_id": job_id},
+            headers={"Retry-After": "10"},
+        ) from exc
+
     logger.info(
-        "Parsing %s (%d bytes, job=%s)",
+        "Queued %s (%d bytes, job=%s, queue=%s, depth=%d)",
         file.filename,
         len(data),
         job_id,
+        queue_name,
+        queue.qsize(),
     )
     try:
-        response = await asyncio.to_thread(
-            _parse_and_save,
-            data,
-            filename=file.filename,
-            job_id=job_id,
-            content_type=content_type,
-        )
+        return JSONResponse(await future)
     except Exception as exc:
         raise HTTPException(
             status_code=500,
             detail={"message": "Parse failed", "job_id": job_id, "error": str(exc)},
         ) from exc
-    return JSONResponse(response)
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
+async def health() -> dict[str, Any]:
     return {
         "status": "ok",
         "model": "glm-ocr",
-        "service": "glm-ocr-persistent-parse-v2",
+        "service": "glm-ocr-queued-parse-v2",
         "output_root": str(_output_root.resolve()),
+        "queues": {
+            "pdf_layout": {
+                "capacity": _pdf_queue_capacity,
+                "workers": _pdf_workers,
+                "waiting": _pdf_queue.qsize() if _pdf_queue else 0,
+            },
+            "image_layout": {
+                "capacity": _image_layout_queue_capacity,
+                "workers": _image_layout_workers,
+                "waiting": (
+                    _image_layout_queue.qsize() if _image_layout_queue else 0
+                ),
+            },
+            "model_only": {
+                "capacity": _model_queue_capacity,
+                "workers": _model_workers,
+                "waiting": _model_queue.qsize() if _model_queue else 0,
+            },
+        },
     }
 
 
 @app.post("/parse")
 async def parse_document(
-    file: UploadFile = File(..., description="PDF or image file to parse"),
+    file: UploadFile = File(..., description="PDF or image file"),
+    image_mode: Literal["auto", "layout", "model_only"] = Query("auto"),
 ) -> JSONResponse:
-    return await _handle_upload(file, images_only=False)
+    return await _enqueue(file, image_mode=image_mode, images_only=False)
 
 
 @app.post("/parse_image")
 async def parse_image(
-    file: UploadFile = File(..., description="Image file to parse"),
+    file: UploadFile = File(..., description="Image file"),
+    image_mode: Literal["auto", "layout", "model_only"] = Query("auto"),
 ) -> JSONResponse:
-    return await _handle_upload(file, images_only=True)
+    return await _enqueue(file, image_mode=image_mode, images_only=True)
 
 
 @app.get("/results/{job_id}")
@@ -242,7 +492,7 @@ async def get_result(job_id: str) -> JSONResponse:
     metadata_file = job_dir / "job.json"
     if not metadata_file.is_file():
         raise HTTPException(status_code=404, detail="Result not found")
-    metadata = json.loads(metadata_file.read_text(encoding="utf-8"))
+    metadata = _read_metadata(job_dir)
     metadata["artifacts"] = _relative_files(job_dir)
     return JSONResponse(metadata)
 
@@ -257,12 +507,9 @@ async def download_artifact(job_id: str, artifact_path: str) -> FileResponse:
 
 
 def main() -> None:
-    arg_parser = argparse.ArgumentParser(
-        description="Persistent GLM-OCR Parse Service v2"
-    )
+    arg_parser = argparse.ArgumentParser(description="Queued GLM-OCR Parse Service v2")
     arg_parser.add_argument(
-        "--host",
-        default=os.environ.get("GLM_OCR_V2_HOST", "127.0.0.1"),
+        "--host", default=os.environ.get("GLM_OCR_V2_HOST", "127.0.0.1")
     )
     arg_parser.add_argument(
         "--port",
@@ -270,8 +517,7 @@ def main() -> None:
         default=int(os.environ.get("GLM_OCR_V2_PORT", DEFAULT_PORT)),
     )
     arg_parser.add_argument(
-        "--config",
-        default=os.environ.get("GLM_OCR_V2_CONFIG", str(DEFAULT_CONFIG)),
+        "--config", default=os.environ.get("GLM_OCR_V2_CONFIG", str(DEFAULT_CONFIG))
     )
     arg_parser.add_argument(
         "--layout-device",
@@ -279,18 +525,36 @@ def main() -> None:
     )
     arg_parser.add_argument(
         "--output-root",
-        default=os.environ.get(
-            "GLM_OCR_V2_OUTPUT_ROOT",
-            str(DEFAULT_OUTPUT_ROOT),
-        ),
+        default=os.environ.get("GLM_OCR_V2_OUTPUT_ROOT", str(DEFAULT_OUTPUT_ROOT)),
     )
     args = arg_parser.parse_args()
 
     global _parser_config_path, _parser_layout_device, _output_root
+    global _pdf_queue_capacity, _image_layout_queue_capacity, _model_queue_capacity
+    global _pdf_workers, _image_layout_workers, _model_workers
+    global _vllm_url, _vllm_model, _vllm_timeout, _vllm_max_tokens
     _parser_config_path = Path(args.config)
     _parser_layout_device = args.layout_device
     _output_root = Path(args.output_root).expanduser().resolve()
     _output_root.mkdir(parents=True, exist_ok=True)
+
+    _pdf_queue_capacity = int(os.environ.get("GLM_OCR_V2_PDF_QUEUE_SIZE", "4"))
+    _image_layout_queue_capacity = int(
+        os.environ.get("GLM_OCR_V2_IMAGE_LAYOUT_QUEUE_SIZE", "8")
+    )
+    _model_queue_capacity = int(os.environ.get("GLM_OCR_V2_MODEL_QUEUE_SIZE", "8"))
+    _pdf_workers = int(os.environ.get("GLM_OCR_V2_PDF_WORKERS", "1"))
+    _image_layout_workers = int(
+        os.environ.get("GLM_OCR_V2_IMAGE_LAYOUT_WORKERS", "1")
+    )
+    _model_workers = int(os.environ.get("GLM_OCR_V2_MODEL_WORKERS", "4"))
+    _vllm_url = os.environ.get(
+        "GLM_OCR_V2_VLLM_URL",
+        "http://127.0.0.1:18080/v1/chat/completions",
+    )
+    _vllm_model = os.environ.get("GLM_OCR_V2_VLLM_MODEL", "glm-ocr")
+    _vllm_timeout = int(os.environ.get("GLM_OCR_V2_VLLM_TIMEOUT", "300"))
+    _vllm_max_tokens = int(os.environ.get("GLM_OCR_V2_VLLM_MAX_TOKENS", "4096"))
 
     import uvicorn
 
