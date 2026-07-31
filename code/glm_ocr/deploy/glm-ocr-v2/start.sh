@@ -25,6 +25,9 @@ GLM_OCR_V2_OUTPUT_ROOT="${GLM_OCR_V2_OUTPUT_ROOT:-${REPOSITORY_ROOT}/result/glm_
 GLM_OCR_V2_LOG_DIR="${GLM_OCR_V2_LOG_DIR:-${PROJECT_ROOT}/logs}"
 GLM_OCR_V2_LOG_FILE="${GLM_OCR_V2_LOG_FILE:-${GLM_OCR_V2_LOG_DIR}/glm_ocr_v2_service.log}"
 GLM_OCR_V2_PID_FILE="${GLM_OCR_V2_PID_FILE:-${GLM_OCR_V2_LOG_DIR}/glm_ocr_v2_service.pid}"
+PPU_SDK="${PPU_SDK:-/usr/local/PPU_SDK}"
+PPU_HOME="${PPU_HOME:-$PPU_SDK}"
+CUDA_PATH="${CUDA_PATH:-${PPU_SDK}/CUDA_SDK}"
 
 usage() {
   echo "Usage: $(basename "$0") [--foreground|--status|--stop]"
@@ -77,12 +80,23 @@ esac
   echo "GLM-OCR v2 config not found: $GLM_OCR_V2_CONFIG" >&2
   exit 1
 }
+[[ -d "$PPU_SDK" ]] || {
+  echo "PPU SDK directory not found: $PPU_SDK" >&2
+  exit 1
+}
+[[ -d "$CUDA_PATH" ]] || {
+  echo "PPU CUDA SDK directory not found: $CUDA_PATH" >&2
+  exit 1
+}
 running && {
   echo "GLM-OCR v2 already running: PID $(cat "$GLM_OCR_V2_PID_FILE")" >&2
   exit 1
 }
 
 mkdir -p "$GLM_OCR_V2_LOG_DIR" "$GLM_OCR_V2_OUTPUT_ROOT"
+export PPU_SDK PPU_HOME CUDA_PATH
+export PATH="${CUDA_PATH}/bin:${PATH}"
+export LD_LIBRARY_PATH="${PPU_SDK}/lib:${CUDA_PATH}/lib64:${LD_LIBRARY_PATH:-}"
 export PYTHONUNBUFFERED=1
 
 cmd=(
