@@ -28,6 +28,8 @@ GLM_OCR_V2_PID_FILE="${GLM_OCR_V2_PID_FILE:-${GLM_OCR_V2_LOG_DIR}/glm_ocr_v2_ser
 PPU_SDK="${PPU_SDK:-/usr/local/PPU_SDK}"
 PPU_HOME="${PPU_HOME:-$PPU_SDK}"
 CUDA_PATH="${CUDA_PATH:-${PPU_SDK}/CUDA_SDK}"
+PPU_RTC_CACHE_DIR="${PPU_RTC_CACHE_DIR:-/data/wilson_2/cache/rtccache}"
+PPU_RTC_CACHE_LINK="${PPU_RTC_CACHE_LINK:-${HOME:-/home/whs}/.rtccache}"
 
 usage() {
   echo "Usage: $(basename "$0") [--foreground|--status|--stop]"
@@ -92,6 +94,33 @@ running && {
   echo "GLM-OCR v2 already running: PID $(cat "$GLM_OCR_V2_PID_FILE")" >&2
   exit 1
 }
+
+mkdir -p "$(dirname "$PPU_RTC_CACHE_DIR")"
+if [[ -L "$PPU_RTC_CACHE_LINK" ]]; then
+  current_target="$(readlink -f "$PPU_RTC_CACHE_LINK")"
+  expected_target="$(readlink -f "$PPU_RTC_CACHE_DIR" 2>/dev/null || echo "$PPU_RTC_CACHE_DIR")"
+  [[ "$current_target" == "$expected_target" ]] || {
+    echo "PPU RTC cache link points elsewhere: $PPU_RTC_CACHE_LINK -> $current_target" >&2
+    exit 1
+  }
+elif [[ -d "$PPU_RTC_CACHE_LINK" ]]; then
+  if [[ -e "$PPU_RTC_CACHE_DIR" ]]; then
+    echo "Both RTC cache paths already exist; refusing to merge automatically:" >&2
+    echo "  current: $PPU_RTC_CACHE_LINK" >&2
+    echo "  target:  $PPU_RTC_CACHE_DIR" >&2
+    exit 1
+  fi
+  mv "$PPU_RTC_CACHE_LINK" "$PPU_RTC_CACHE_DIR"
+  ln -s "$PPU_RTC_CACHE_DIR" "$PPU_RTC_CACHE_LINK"
+  echo "Moved PPU RTC cache to $PPU_RTC_CACHE_DIR"
+elif [[ -e "$PPU_RTC_CACHE_LINK" ]]; then
+  echo "PPU RTC cache path is not a directory: $PPU_RTC_CACHE_LINK" >&2
+  exit 1
+else
+  mkdir -p "$PPU_RTC_CACHE_DIR"
+  mkdir -p "$(dirname "$PPU_RTC_CACHE_LINK")"
+  ln -s "$PPU_RTC_CACHE_DIR" "$PPU_RTC_CACHE_LINK"
+fi
 
 mkdir -p "$GLM_OCR_V2_LOG_DIR" "$GLM_OCR_V2_OUTPUT_ROOT"
 export PPU_SDK PPU_HOME CUDA_PATH

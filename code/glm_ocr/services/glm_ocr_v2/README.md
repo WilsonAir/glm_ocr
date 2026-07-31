@@ -29,6 +29,9 @@ deploy/glm-ocr-v2/start.sh --stop
 The default address is `http://127.0.0.1:18091`. Configuration can be
 overridden with `GLM_OCR_V2_CONFIG`, `GLM_OCR_V2_LAYOUT_DEVICE`,
 `GLM_OCR_V2_OUTPUT_ROOT`, `GLM_OCR_V2_HOST`, and `GLM_OCR_V2_PORT`.
+The launcher also keeps the PPU RTC cache under
+`/data/wilson_2/cache/rtccache` and links the runtime's `~/.rtccache` path to
+it. Override `PPU_RTC_CACHE_DIR` or `PPU_RTC_CACHE_LINK` when needed.
 
 Parse and inspect a result:
 
