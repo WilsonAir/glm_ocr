@@ -1,0 +1,29 @@
+# 外层异步持久任务队列。内层 GLM-OCR v2 服务保持不变。
+
+service:
+  host: 127.0.0.1
+  port: 18092
+  output_root: result/glm_ocr/task_queue
+
+inner_service:
+  base_url: http://127.0.0.1:18091
+  # 包含排队、Layout、OCR 和结果保存的总等待时间。
+  timeout: 3600
+
+queues:
+  pdf:
+    # 2 个专用线程；每个线程同一时间处理 1 个 PDF。
+    workers: 2
+    # 交给模型 Worker 前的就绪队列上限，不包含正在处理的 2 个 PDF。
+    # 超出部分仍会被接口接收并持久化为 pending，不会返回“队列已满”。
+    capacity: 4
+  image:
+    # 1 个专用线程；同一时间处理 1 张图片。
+    workers: 1
+    # 交给模型 Worker 前的就绪队列上限，不包含正在处理的图片。
+    # 超出部分仍会被接口接收并持久化为 pending。
+    capacity: 8
+
+storage:
+  # 通过 ResultStore 接口隔离；后续可增加 type: obs 适配器。
+  type: local
