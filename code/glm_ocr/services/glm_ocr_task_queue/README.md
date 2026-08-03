@@ -35,8 +35,7 @@ Content-Type: multipart/form-data
 
 ```bash
 curl -X POST 'http://127.0.0.1:18092/tasks' \
-  -F 'name=patient_001' \
-  -F 'file=@/path/to/document.pdf'
+  -F 'file=@/path/to/patient_001.pdf'
 ```
 
 图片可以指定处理模式：
@@ -44,7 +43,6 @@ curl -X POST 'http://127.0.0.1:18092/tasks' \
 ```bash
 curl -X POST \
   'http://127.0.0.1:18092/tasks?image_mode=model_only' \
-  -F 'name=crop_001' \
   -F 'file=@/path/to/crop.png'
 ```
 
@@ -64,10 +62,11 @@ curl -X POST \
 Job ID 格式：
 
 ```text
-<用户名称>_<北京时间 yyyyMMddHHmmssffffff>
+<上传文件基础名>_<北京时间 yyyyMMddHHmmssffffff>
 ```
 
-名称中的空格和 URL 不安全字符替换为下划线，名称部分最多保留 59 个字符。
+接口不再要求单独传入 `name`。服务使用上传文件名去掉扩展名后的基础名生成
+Job ID；其中的空格和 URL 不安全字符替换为下划线，名称部分最多保留 59 个字符。
 
 ### 查询状态
 

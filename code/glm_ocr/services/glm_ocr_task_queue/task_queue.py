@@ -26,7 +26,7 @@ def normalize_task_name(name: str) -> str:
     normalized = re.sub(r"[^\w.-]+", "_", name.strip(), flags=re.UNICODE)
     normalized = normalized.strip("._-")[:59]
     if not normalized:
-        raise ValueError("Task name must contain at least one letter or number")
+        raise ValueError("File name must contain at least one letter or number")
     return normalized
 
 

@@ -17,7 +17,7 @@ from typing import Any, Literal
 
 import requests
 import yaml
-from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import JSONResponse
 
 try:
@@ -455,19 +455,20 @@ async def health() -> dict[str, Any]:
 
 @app.post("/tasks")
 async def submit_task(
-    name: str = Form(..., description="User supplied task name"),
     file: UploadFile = File(..., description="PDF or image file"),
     image_mode: Literal["auto", "layout", "model_only"] = Query("auto"),
 ) -> JSONResponse:
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename")
+    filename = _safe_filename(file.filename)
+    task_name = Path(filename).stem
     header = await file.read(16)
     await file.seek(0)
     if not header:
         raise HTTPException(status_code=400, detail="Empty file")
     try:
-        normalize_task_name(name)
-        content_type = _detect_content_type(header, file.filename)
+        normalize_task_name(task_name)
+        content_type = _detect_content_type(header, filename)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if content_type == "pdf" and image_mode == "model_only":
@@ -480,8 +481,7 @@ async def submit_task(
     _dispatcher(queue_name)
 
     repository, _ = _services()
-    job_id, job_dir = repository.create(name)
-    filename = _safe_filename(file.filename)
+    job_id, job_dir = repository.create(task_name)
     relative_input = Path("input") / filename
     created_at = beijing_now()
     try:
@@ -493,7 +493,7 @@ async def submit_task(
     except Exception as exc:
         repository.write(job_id, {
             "job_id": job_id,
-            "name": name,
+            "name": task_name,
             "status": "failed",
             "filename": filename,
             "created_at": created_at,
@@ -507,7 +507,7 @@ async def submit_task(
 
     repository.write(job_id, {
         "job_id": job_id,
-        "name": name,
+        "name": task_name,
         "status": "pending",
         "queue": queue_name,
         "filename": filename,
