@@ -3,6 +3,8 @@
 本服务不修改 GLM-OCR v2 内层实现。外层监听 `18092`，Worker 通过 HTTP 调用
 内层 `http://127.0.0.1:18091/parse`。
 
+面向外部调用方的 v1/v2 完整接口说明见 [API_USAGE.md](API_USAGE.md)。
+
 ```text
 调用方
   → 外层任务服务 :18092
@@ -11,8 +13,8 @@
       │     ├── PDF 模型就绪队列：4 等待位 → 2 Worker
       │     └── 图片模型就绪队列：8 等待位 → 1 Worker
       └── ResultStore
-            └── 当前：本地文件
-            └── 后续：OBS Adapter
+            ├── 本地任务目录（用于恢复与缓存）
+            └── 阿里云 OSS（对外结果与图片产物）
   → 内层 GLM-OCR v2 :18091
 ```
 
@@ -50,23 +52,24 @@ curl -X POST \
 
 ```json
 {
-  "job_id": "patient_001_20260731153045123456",
+  "job_id": "patient_001_20260731153045",
   "status": "pending",
   "queue": "pdf",
-  "status_url": "/tasks/patient_001_20260731153045123456/status",
-  "result_url": "/tasks/patient_001_20260731153045123456/result",
-  "cancel_url": "/tasks/patient_001_20260731153045123456"
+  "status_url": "/tasks/patient_001_20260731153045/status",
+  "result_url": "/tasks/patient_001_20260731153045/result",
+  "cancel_url": "/tasks/patient_001_20260731153045"
 }
 ```
 
 Job ID 格式：
 
 ```text
-<上传文件基础名>_<北京时间 yyyyMMddHHmmssffffff>
+<上传文件基础名>_<北京时间 yyyyMMddHHmmss>
 ```
 
 接口不再要求单独传入 `name`。服务使用上传文件名去掉扩展名后的基础名生成
 Job ID；其中的空格和 URL 不安全字符替换为下划线，名称部分最多保留 59 个字符。
+同名文件在同一秒内重复提交时，后续任务追加 `_0001`、`_0002` 等短序号以保证唯一。
 
 ### 查询状态
 
@@ -134,6 +137,9 @@ result/glm_ocr/task_queue/<job_id>/
 ```text
 ├── result.md
 └── inner_response.json
+└── artifacts/
+    ├── imgs/             # 内层生成时存在
+    └── layout_vis/       # 内层生成时存在
 ```
 
 `job.json` 使用临时文件和 `os.replace()` 原子更新。服务启动时：
@@ -171,30 +177,48 @@ deploy/glm-ocr-task-queue/start.sh --foreground
 code/glm_ocr/config/task_queue_v2.yaml
 ```
 
-## OBS 扩展点
+## 阿里云 OSS 结果存储
 
-[storage.py](storage.py) 定义了 `ResultStore` 协议：
+外层不改动内层 OCR 服务。内层任务完成后，外层根据其 `artifacts` 清单，通过内层
+`/results/{inner_job_id}/{artifact_path}` 下载图片、布局可视化等产物到本地任务目录，
+再统一上传 OSS。
 
-```python
-class ResultStore(Protocol):
-    def save(self, *, job_dir, text, inner_response) -> dict: ...
-    def read_text(self, *, job_dir, metadata) -> str: ...
+OSS 对象键结构：
+
+```text
+${OSS_PREFIX}/<job_id>/
+├── result.md
+├── inner_response.json
+└── artifacts/
+    ├── imgs/...
+    └── layout_vis/...
 ```
 
-当前 `LocalResultStore` 写本地文件。后续新增 `ObsResultStore` 并在
-`build_result_store()` 中按配置创建即可，队列、任务状态和 API 不需要修改。
+将仓库中的 [.env.example](../../../../.env.example) 复制为仓库根目录 `.env` 并填写真实
+凭据。`.env` 已在 `.gitignore` 中，禁止提交到 GitLab：
 
-建议 OBS Adapter 返回类似元数据：
-
-```json
-{
-  "storage": {
-    "type": "obs",
-    "bucket": "bucket-name",
-    "object_key": "glm-ocr/<job_id>/result.md"
-  }
-}
+```dotenv
+OSS_ENDPOINT=https://oss-cn-<region>.aliyuncs.com
+OSS_ACCESS_KEY_ID=...
+OSS_ACCESS_KEY_SECRET=...
+OSS_BUCKET_NAME=...
+OSS_PREFIX=glm_ocr_output
+OSS_SIGNED_URL_EXPIRES_SECONDS=3600
 ```
+
+启动前安装 OSS SDK：
+
+```bash
+pip install -r code/glm_ocr/requirements.txt
+```
+
+任务完成后，`GET /tasks/{job_id}/result` 的 `artifacts` 包含每个 OSS 对象键和临时
+签名下载链接；默认有效期为 3600 秒，可在 `.env` 或
+`task_queue_v2.yaml` 中调整。`object_key` 只是对象路径，只有 `artifacts[].url` 可供
+浏览器或 `curl -L` 直接下载。对象桶建议保持私有。
+
+OSS 上传或内层产物下载失败时，任务标记为 `failed`，从而避免返回一个缺少图片的
+“完成”结果。
 
 ## 约束
 

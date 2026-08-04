@@ -27,17 +27,40 @@ class FakeResponse:
         }
 
 
+class FakeArtifactResponse(FakeResponse):
+    def json(self) -> dict:
+        return {
+            **super().json(),
+            "artifacts": ["imgs/image_0.jpg", "layout_vis/page_1.png"],
+        }
+
+
+class FakeDownloadResponse:
+    def __init__(self, data: bytes) -> None:
+        self._data = data
+        self.closed = False
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def iter_content(self, chunk_size: int) -> list[bytes]:
+        return [self._data]
+
+    def close(self) -> None:
+        self.closed = True
+
+
 class TaskServiceApiTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
-        root = Path(self.temporary.name)
-        config = root / "config.yaml"
+        self.root = Path(self.temporary.name)
+        config = self.root / "config.yaml"
         config.write_text(
             "\n".join([
                 "service:",
                 "  host: 127.0.0.1",
                 "  port: 18092",
-                f"  output_root: {root / 'tasks'}",
+                f"  output_root: {self.root / 'tasks'}",
                 "inner_service:",
                 "  base_url: http://inner.test",
                 "  timeout: 10",
@@ -106,6 +129,44 @@ class TaskServiceApiTests(unittest.TestCase):
                 result = client.get(submitted["result_url"])
                 self.assertEqual(result.status_code, 200)
                 self.assertEqual(result.json()["text"], "# OCR result")
+
+    def test_inner_artifacts_are_collected_into_outer_task_directory(self) -> None:
+        downloads = [
+            FakeDownloadResponse(b"first-image"),
+            FakeDownloadResponse(b"layout-image"),
+        ]
+        with patch.object(
+            service.requests,
+            "post",
+            return_value=FakeArtifactResponse(),
+        ):
+            with patch.object(service.requests, "get", side_effect=downloads) as get:
+                with TestClient(service.app) as client:
+                    submitted = client.post(
+                        "/tasks",
+                        files={
+                            "file": (
+                                "document.pdf",
+                                b"%PDF-1.7 test",
+                                "application/pdf",
+                            )
+                        },
+                    ).json()
+                    self.wait_for_status(client, submitted["job_id"], {"completed"})
+                    result = client.get(submitted["result_url"]).json()
+
+        job_dir = self.root / "tasks" / submitted["job_id"]
+        self.assertEqual(
+            (job_dir / "artifacts" / "imgs" / "image_0.jpg").read_bytes(),
+            b"first-image",
+        )
+        self.assertEqual(
+            (job_dir / "artifacts" / "layout_vis" / "page_1.png").read_bytes(),
+            b"layout-image",
+        )
+        self.assertIn("artifacts/imgs/image_0.jpg", result["artifacts"])
+        self.assertTrue(downloads[0].closed)
+        self.assertIn("/results/inner-job/imgs/image_0.jpg", get.call_args_list[0].args[0])
 
     def test_cancel_running_task(self) -> None:
         entered = threading.Event()

@@ -25,5 +25,9 @@ queues:
     capacity: 8
 
 storage:
-  # 通过 ResultStore 接口隔离；后续可增加 type: obs 适配器。
-  type: local
+  # 外层将 Markdown、内层响应及 imgs/layout_vis 等产物上传至阿里云 OSS。
+  # 凭据只从仓库根目录 .env（或实际运行环境变量）读取，禁止提交到 Git。
+  type: oss
+  env_file: .env
+  # GET /tasks/{job_id}/result 中返回的 OSS 临时下载链接有效期。
+  signed_url_expires_seconds: 3600

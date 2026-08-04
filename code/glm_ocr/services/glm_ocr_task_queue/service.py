@@ -12,8 +12,9 @@ import shutil
 import threading
 import time
 from contextlib import asynccontextmanager
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Literal
+from urllib.parse import quote
 
 import requests
 import yaml
@@ -64,6 +65,7 @@ _scheduler_event = threading.Event()
 _scheduler_stop = threading.Event()
 _scheduler_thread: threading.Thread | None = None
 
+_inner_base_url = "http://127.0.0.1:18091"
 _inner_parse_url = "http://127.0.0.1:18091/parse"
 _inner_timeout = 3600
 _pdf_capacity = 4
@@ -111,6 +113,63 @@ def _copy_upload(source: Any, destination: Path) -> int:
     with destination.open("wb") as target:
         shutil.copyfileobj(source, target, length=1024 * 1024)
     return destination.stat().st_size
+
+
+def _safe_inner_artifact_path(value: str) -> PurePosixPath:
+    path = PurePosixPath(value)
+    if (
+        not value
+        or "\\" in value
+        or path.is_absolute()
+        or path.name in {"", ".", ".."}
+        or ".." in path.parts
+    ):
+        raise ValueError(f"Invalid inner artifact path: {value!r}")
+    return path
+
+
+def _collect_inner_artifacts(
+    *,
+    job_dir: Path,
+    inner_response: dict[str, Any],
+) -> list[str]:
+    """Copy inner OCR artifacts through its HTTP API into the outer task folder."""
+    inner_job_id = inner_response.get("job_id")
+    raw_artifacts = inner_response.get("artifacts", [])
+    if not raw_artifacts:
+        return []
+    if not isinstance(inner_job_id, str) or not inner_job_id:
+        raise ValueError("Inner result does not include job_id for artifact retrieval")
+    if not isinstance(raw_artifacts, list):
+        raise ValueError("Inner result artifacts must be a list")
+
+    artifacts_root = (job_dir / "artifacts").resolve()
+    copied: list[str] = []
+    for raw_artifact in raw_artifacts:
+        if not isinstance(raw_artifact, str):
+            raise ValueError("Inner result artifact path must be a string")
+        relative = _safe_inner_artifact_path(raw_artifact)
+        target = (artifacts_root / Path(*relative.parts)).resolve()
+        if not target.is_relative_to(artifacts_root):
+            raise ValueError(f"Invalid inner artifact path: {raw_artifact!r}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        source_url = (
+            f"{_inner_base_url}/results/{quote(inner_job_id, safe='')}/"
+            f"{quote(relative.as_posix(), safe='/')}"
+        )
+        response = requests.get(source_url, stream=True, timeout=_inner_timeout)
+        try:
+            response.raise_for_status()
+            temporary = target.with_name(f".{target.name}.part")
+            with temporary.open("wb") as output_file:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        output_file.write(chunk)
+            os.replace(temporary, target)
+        finally:
+            response.close()
+        copied.append(f"artifacts/{relative.as_posix()}")
+    return copied
 
 
 def _task_urls(job_id: str) -> dict[str, str]:
@@ -202,6 +261,10 @@ def _process_job(job_id: str) -> None:
         ):
             return
 
+        copied_artifacts = _collect_inner_artifacts(
+            job_dir=repository.job_dir(job_id),
+            inner_response=inner_response,
+        )
         storage_fields = result_store.save(
             job_dir=repository.job_dir(job_id),
             text=text,
@@ -223,6 +286,7 @@ def _process_job(job_id: str) -> None:
                 finished_at=beijing_now(),
                 inner_job_id=inner_response.get("job_id"),
                 inner_result_url=inner_response.get("result_url"),
+                inner_artifacts=copied_artifacts,
                 **storage_fields,
             )
 
@@ -559,7 +623,10 @@ async def get_task_result(job_id: str) -> JSONResponse:
     return JSONResponse({
         **metadata,
         "text": text,
-        "artifacts": repository.artifacts(job_id),
+        "artifacts": result_store.public_artifacts(
+            job_dir=repository.job_dir(job_id),
+            metadata=metadata,
+        ),
         **_task_urls(job_id),
     })
 
@@ -622,7 +689,7 @@ async def cancel_task(job_id: str) -> JSONResponse:
 
 def configure(config_path: Path) -> tuple[str, int]:
     global _repository, _result_store
-    global _inner_parse_url, _inner_timeout
+    global _inner_base_url, _inner_parse_url, _inner_timeout
     global _pdf_capacity, _pdf_workers, _image_capacity, _image_workers
 
     resolved = config_path.expanduser().resolve()
@@ -632,6 +699,7 @@ def configure(config_path: Path) -> tuple[str, int]:
     service = config.get("service", {})
     inner = config.get("inner_service", {})
     queues = config.get("queues", {})
+    storage_config = config.get("storage", {})
 
     output_value = Path(
         os.environ.get(
@@ -642,9 +710,13 @@ def configure(config_path: Path) -> tuple[str, int]:
     if not output_value.is_absolute():
         output_value = REPOSITORY_ROOT / output_value
     _repository = TaskRepository(output_value)
-    _result_store = build_result_store(config.get("storage", {}))
+    env_file = Path(str(storage_config.get("env_file", ".env")))
+    if not env_file.is_absolute():
+        env_file = REPOSITORY_ROOT / env_file
+    _result_store = build_result_store(storage_config, env_file=env_file)
 
     base_url = str(inner.get("base_url", "http://127.0.0.1:18091")).rstrip("/")
+    _inner_base_url = base_url
     _inner_parse_url = f"{base_url}/parse"
     _inner_timeout = int(inner.get("timeout", 3600))
 

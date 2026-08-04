@@ -14,7 +14,12 @@ from typing import Any, Callable, Literal
 from zoneinfo import ZoneInfo
 
 BEIJING_TIMEZONE = ZoneInfo("Asia/Shanghai")
-JOB_ID_RE = re.compile(r"^[\w.-]{1,59}_\d{20}$", re.UNICODE)
+# New IDs use a 14-digit Beijing timestamp, with a suffix only on a same-second
+# name collision. The legacy 20-digit microsecond form remains readable.
+JOB_ID_RE = re.compile(
+    r"^[\w.-]{1,59}_(?:\d{20}|\d{14}(?:_\d{4})?)$",
+    re.UNICODE,
+)
 TERMINAL_STATUSES = {"completed", "failed", "canceled"}
 
 
@@ -42,11 +47,10 @@ class TaskRepository:
     def create(self, name: str) -> tuple[str, Path]:
         normalized = normalize_task_name(name)
         with self._id_lock:
-            for _ in range(100):
-                timestamp = datetime.now(BEIJING_TIMEZONE).strftime(
-                    "%Y%m%d%H%M%S%f"
-                )
-                job_id = f"{normalized}_{timestamp}"
+            timestamp = datetime.now(BEIJING_TIMEZONE).strftime("%Y%m%d%H%M%S")
+            for sequence in range(10_000):
+                collision_suffix = "" if sequence == 0 else f"_{sequence:04d}"
+                job_id = f"{normalized}_{timestamp}{collision_suffix}"
                 job_dir = self.root / job_id
                 try:
                     job_dir.mkdir(parents=True, exist_ok=False)
