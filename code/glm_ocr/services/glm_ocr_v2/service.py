@@ -24,6 +24,7 @@ import requests
 import yaml
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,6 +68,14 @@ _vllm_url = "http://127.0.0.1:18080/v1/chat/completions"
 _vllm_model = "glm-ocr"
 _vllm_timeout = 300
 _vllm_max_tokens = 4096
+
+_oss_endpoint = ""
+_oss_access_key_id = ""
+_oss_access_key_secret = ""
+_oss_bucket_name = ""
+_oss_prefix = "glm_ocr_output"
+_oss_signed_url_expires = 3600
+_oss_bucket: Any = None
 
 _pdf_queue: asyncio.Queue[QueueJob] | None = None
 _image_layout_queue: asyncio.Queue[QueueJob] | None = None
@@ -480,6 +489,42 @@ async def health() -> dict[str, Any]:
     }
 
 
+@app.get("/queue_status")
+async def queue_status() -> dict[str, Any]:
+    def _queue_info(
+        queue: asyncio.Queue[QueueJob] | None,
+        capacity: int,
+        workers: int,
+    ) -> dict[str, Any]:
+        waiting = queue.qsize() if queue else 0
+        available = capacity - waiting
+        return {
+            "capacity": capacity,
+            "workers": workers,
+            "waiting": waiting,
+            "available_slots": max(available, 0),
+            "usage_percent": round(waiting / capacity * 100, 1) if capacity else 0,
+            "is_full": queue.full() if queue else False,
+        }
+
+    queues = {
+        "pdf_layout": _queue_info(_pdf_queue, _pdf_queue_capacity, _pdf_workers),
+        "image_layout": _queue_info(
+            _image_layout_queue, _image_layout_queue_capacity, _image_layout_workers,
+        ),
+        "model_only": _queue_info(_model_queue, _model_queue_capacity, _model_workers),
+    }
+    total_waiting = sum(q["waiting"] for q in queues.values())
+    total_capacity = sum(q["capacity"] for q in queues.values())
+    return {
+        "status": "ok",
+        "timestamp": _beijing_now(),
+        "total_waiting": total_waiting,
+        "total_capacity": total_capacity,
+        "queues": queues,
+    }
+
+
 @app.post("/parse")
 async def parse_document(
     file: UploadFile = File(..., description="PDF or image file"),
@@ -516,6 +561,157 @@ async def download_artifact(job_id: str, artifact_path: str) -> FileResponse:
     return FileResponse(requested, filename=requested.name)
 
 
+class OssTaskRequest(BaseModel):
+    task_id: str
+    oss_path: str
+    image_mode: Literal["auto", "layout", "model_only"] = "auto"
+
+
+def _init_oss_bucket() -> Any:
+    global _oss_bucket
+    if _oss_bucket is not None:
+        return _oss_bucket
+    if not all([_oss_endpoint, _oss_access_key_id, _oss_access_key_secret, _oss_bucket_name]):
+        raise RuntimeError("OSS configuration is incomplete")
+    try:
+        import oss2
+    except ImportError as exc:
+        raise RuntimeError("OSS support requires 'oss2' package") from exc
+    auth = oss2.Auth(_oss_access_key_id, _oss_access_key_secret)
+    _oss_bucket = oss2.Bucket(auth, _oss_endpoint, _oss_bucket_name)
+    return _oss_bucket
+
+
+def _download_from_oss(oss_path: str) -> tuple[bytes, str]:
+    bucket = _init_oss_bucket()
+    object_key = oss_path.lstrip("/")
+    try:
+        result = bucket.get_object(object_key)
+        data = result.read()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Failed to download from OSS: {object_key}",
+        ) from exc
+    filename = Path(object_key).name
+    return data, filename
+
+
+def _upload_to_oss(job_dir: Path, job_id: str, prefix: str = "") -> list[dict[str, str]]:
+    bucket = _init_oss_bucket()
+    base_key = f"{_oss_prefix}/{job_id}"
+    if prefix:
+        base_key = f"{base_key}/{prefix}"
+    uploaded = []
+    for file_path in job_dir.rglob("*"):
+        if file_path.is_file():
+            relative = file_path.relative_to(job_dir)
+            object_key = f"{base_key}/{relative.as_posix()}"
+            content_type = "application/octet-stream"
+            if file_path.suffix == ".md":
+                content_type = "text/markdown; charset=utf-8"
+            elif file_path.suffix == ".json":
+                content_type = "application/json; charset=utf-8"
+            elif file_path.suffix in {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"}:
+                content_type = f"image/{file_path.suffix.lstrip('.')}"
+            bucket.put_object_from_file(object_key, str(file_path), headers={"Content-Type": content_type})
+            url = bucket.sign_url("GET", object_key, _oss_signed_url_expires)
+            uploaded.append({
+                "path": relative.as_posix(),
+                "oss_key": object_key,
+                "url": url,
+            })
+    return uploaded
+
+
+@app.post("/parse_oss")
+async def parse_oss_task(req: OssTaskRequest) -> JSONResponse:
+    logger.info("Parsing OSS task: %s from %s", req.task_id, req.oss_path)
+    data, filename = await asyncio.to_thread(_download_from_oss, req.oss_path)
+    if not data:
+        raise HTTPException(status_code=400, detail="Downloaded file is empty")
+    try:
+        content_type, _ = _detect_content_type(data, filename)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if content_type == "pdf" and req.image_mode == "model_only":
+        raise HTTPException(
+            status_code=400,
+            detail="PDF requires layout mode; model_only accepts images only",
+        )
+    mode: Literal["layout", "model_only"] = (
+        "model_only" if content_type == "image" and req.image_mode == "model_only"
+        else "layout"
+    )
+    if mode == "model_only":
+        queue = _model_queue
+        queue_name = "model_only"
+    elif content_type == "pdf":
+        queue = _pdf_queue
+        queue_name = "pdf_layout"
+    else:
+        queue = _image_layout_queue
+        queue_name = "image_layout"
+    if queue is None:
+        raise HTTPException(status_code=503, detail="Service queue is not ready")
+    if queue.full():
+        raise HTTPException(
+            status_code=429,
+            detail={"message": f"{queue_name} queue is full", "retry_after_sec": 10},
+            headers={"Retry-After": "10"},
+        )
+    job_id = str(uuid.uuid4())
+    job_dir = _safe_job_dir(job_id)
+    job_dir.mkdir(parents=True, exist_ok=False)
+    created = _beijing_now()
+    _write_metadata(job_dir, {
+        "job_id": job_id,
+        "task_id": req.task_id,
+        "status": "queued",
+        "queue": queue_name,
+        "filename": filename,
+        "content_type": content_type,
+        "image_mode": req.image_mode,
+        "oss_source": req.oss_path,
+        "created_at": created,
+        "output_dir": str(job_dir),
+    })
+    future: asyncio.Future[dict[str, Any]] = asyncio.get_running_loop().create_future()
+    job = QueueJob(
+        job_id=job_id,
+        filename=filename,
+        data=data,
+        content_type=content_type,
+        mode=mode,
+        future=future,
+    )
+    try:
+        queue.put_nowait(job)
+    except asyncio.QueueFull as exc:
+        _update_metadata(job_dir, status="rejected", error=f"{queue_name} queue is full")
+        raise HTTPException(
+            status_code=429,
+            detail={"message": f"{queue_name} queue is full", "job_id": job_id},
+            headers={"Retry-After": "10"},
+        ) from exc
+    logger.info(
+        "Queued OSS task %s: %s (%d bytes, job=%s, queue=%s)",
+        req.task_id, filename, len(data), job_id, queue_name,
+    )
+    try:
+        result = await future
+        oss_artifacts = await asyncio.to_thread(_upload_to_oss, job_dir, job_id)
+        result["oss_artifacts"] = oss_artifacts
+        result["task_id"] = req.task_id
+        _update_metadata(job_dir, oss_artifacts=oss_artifacts, oss_uploaded=True, oss_uploaded_at=_beijing_now())
+        return JSONResponse(result)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={"message": "Parse failed", "job_id": job_id, "task_id": req.task_id, "error": str(exc)},
+        ) from exc
+
+
 def main() -> None:
     arg_parser = argparse.ArgumentParser(description="Queued GLM-OCR Parse Service v2")
     arg_parser.add_argument(
@@ -550,6 +746,8 @@ def main() -> None:
     global _pdf_queue_capacity, _image_layout_queue_capacity, _model_queue_capacity
     global _pdf_workers, _image_layout_workers, _model_workers
     global _vllm_url, _vllm_model, _vllm_timeout, _vllm_max_tokens
+    global _oss_endpoint, _oss_access_key_id, _oss_access_key_secret
+    global _oss_bucket_name, _oss_prefix, _oss_signed_url_expires
     service_config_path = Path(args.service_config).expanduser().resolve()
     if not service_config_path.is_file():
         raise FileNotFoundError(f"GLM-OCR v2 service config not found: {service_config_path}")
@@ -591,6 +789,21 @@ def main() -> None:
     _vllm_model = str(vllm.get("model", "glm-ocr"))
     _vllm_timeout = int(vllm.get("timeout", 300))
     _vllm_max_tokens = int(vllm.get("max_tokens", 4096))
+
+    oss_config = service_config.get("oss", {})
+    _oss_endpoint = os.environ.get("OSS_ENDPOINT") or str(oss_config.get("endpoint", ""))
+    _oss_access_key_id = os.environ.get("OSS_ACCESS_KEY_ID") or str(oss_config.get("access_key_id", ""))
+    _oss_access_key_secret = os.environ.get("OSS_ACCESS_KEY_SECRET") or str(oss_config.get("access_key_secret", ""))
+    _oss_bucket_name = os.environ.get("OSS_BUCKET_NAME") or str(oss_config.get("bucket_name", ""))
+    _oss_prefix = os.environ.get("OSS_PREFIX") or str(oss_config.get("prefix", "glm_ocr_output"))
+    _oss_signed_url_expires = int(
+        os.environ.get("OSS_SIGNED_URL_EXPIRES_SECONDS")
+        or oss_config.get("signed_url_expires_seconds", 3600)
+    )
+    if _oss_endpoint and _oss_access_key_id and _oss_access_key_secret and _oss_bucket_name:
+        logger.info("OSS configured: endpoint=%s bucket=%s prefix=%s", _oss_endpoint, _oss_bucket_name, _oss_prefix)
+    else:
+        logger.info("OSS not configured; /parse_oss will be unavailable until OSS credentials are set")
 
     import uvicorn
 

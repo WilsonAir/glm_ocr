@@ -33,6 +33,16 @@ vllm:
   gpu_memory_utilization: 0.6
   max_model_len: 8192
 
+oss:
+  # /parse_oss 接口使用。凭据优先从环境变量读取，也可在此填写。
+  # 未配置时 /parse_oss 不可用，其他接口不受影响。
+  endpoint: ""
+  access_key_id: ""
+  access_key_secret: ""
+  bucket_name: ""
+  prefix: glm_ocr_output
+  signed_url_expires_seconds: 3600
+
 layout:
   device: cuda:1
   physical_device: 1

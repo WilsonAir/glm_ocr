@@ -1,7 +1,7 @@
 # GLM-OCR 文档解析接口调用说明
 
 本文档面向 GLM-OCR 接口调用方，介绍 PDF、病例图片和局部裁剪图片的提交、
-结果查询及文件下载方法。
+结果查询及文件下载方法。支持通过文件上传或 OSS 路径两种方式提交解析任务。
 
 ## 接口地址
 
@@ -48,7 +48,71 @@ curl -s '{BASE_URL}/health'
 }
 ```
 
-## 2. 提交解析任务
+## 2. 查询队列占用情况
+
+```http
+GET /queue_status
+```
+
+调用示例：
+
+```bash
+curl -s '{BASE_URL}/queue_status'
+```
+
+响应示例：
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-08-04T16:10:00+08:00",
+  "total_waiting": 1,
+  "total_capacity": 20,
+  "queues": {
+    "pdf_layout": {
+      "capacity": 4,
+      "workers": 2,
+      "waiting": 1,
+      "available_slots": 3,
+      "usage_percent": 25.0,
+      "is_full": false
+    },
+    "image_layout": {
+      "capacity": 8,
+      "workers": 1,
+      "waiting": 0,
+      "available_slots": 8,
+      "usage_percent": 0.0,
+      "is_full": false
+    },
+    "model_only": {
+      "capacity": 8,
+      "workers": 4,
+      "waiting": 0,
+      "available_slots": 8,
+      "usage_percent": 0.0,
+      "is_full": false
+    }
+  }
+}
+```
+
+响应字段：
+
+| 字段 | 说明 |
+|---|---|
+| `total_waiting` | 所有队列的等待任务总数 |
+| `total_capacity` | 所有队列的总容量 |
+| `queues.{name}.capacity` | 队列最大容量 |
+| `queues.{name}.workers` | 该队列的并发 Worker 数 |
+| `queues.{name}.waiting` | 当前等待中的任务数 |
+| `queues.{name}.available_slots` | 剩余可用槽位 |
+| `queues.{name}.usage_percent` | 队列使用率（百分比） |
+| `queues.{name}.is_full` | 队列是否已满 |
+
+当 `is_full` 为 `true` 时，提交新任务将返回 HTTP 429 错误。
+
+## 3. 提交解析任务
 
 统一使用：
 
@@ -106,7 +170,90 @@ curl -X POST \
 
 局部裁剪图使用 `model_only` 延迟更低。
 
-## 3. 成功响应
+## 3. 通过 OSS 路径提交解析任务
+
+对于已存储在阿里云 OSS 中的文件，可以使用 `/parse_oss` 接口，无需上传文件，
+只需提供 OSS 对象路径即可。服务会自动从 OSS 下载文件、执行解析，并将结果上传
+回 OSS。
+
+```http
+POST /parse_oss
+Content-Type: application/json
+```
+
+请求参数（JSON Body）：
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|---|---|---:|---|---|
+| `task_id` | string | 是 | — | 业务侧自定义的任务标识 |
+| `oss_path` | string | 是 | — | OSS 对象路径（bucket 内的 object key） |
+| `image_mode` | string | 否 | `auto` | 图片处理模式，可选值同 `/parse` |
+
+请求示例：
+
+```bash
+curl -X POST '{BASE_URL}/parse_oss' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "task_id": "order-12345",
+    "oss_path": "docs/medical/report.pdf",
+    "image_mode": "auto"
+  }'
+```
+
+成功响应示例：
+
+```json
+{
+  "job_id": "b59254c0-9f42-4343-a102-4ac04a66c56b",
+  "task_id": "order-12345",
+  "status": "completed",
+  "queue": "pdf_layout",
+  "filename": "report.pdf",
+  "content_type": "pdf",
+  "image_mode": "auto",
+  "oss_source": "docs/medical/report.pdf",
+  "created_at": "2026-08-04T15:30:00+08:00",
+  "started_at": "2026-08-04T15:30:05+08:00",
+  "finished_at": "2026-08-04T15:32:10+08:00",
+  "chars": 12345,
+  "elapsed_sec": 125.0,
+  "text": "# Markdown 识别结果",
+  "artifacts": [
+    "job.json",
+    "result.md",
+    "result.json"
+  ],
+  "oss_artifacts": [
+    {
+      "path": "result.md",
+      "oss_key": "glm_ocr_output/b59254c0-9f42-4343-a102-4ac04a66c56b/result.md",
+      "url": "https://oss-cn-xxx.aliyuncs.com/glm_ocr_output/b59254c0-...?sign=..."
+    },
+    {
+      "path": "result.json",
+      "oss_key": "glm_ocr_output/b59254c0-9f42-4343-a102-4ac04a66c56b/result.json",
+      "url": "https://oss-cn-xxx.aliyuncs.com/glm_ocr_output/b59254c0-...?sign=..."
+    }
+  ],
+  "result_url": "/results/b59254c0-9f42-4343-a102-4ac04a66c56b"
+}
+```
+
+OSS 任务响应在 `/parse` 响应基础上额外包含：
+
+| 字段 | 说明 |
+|---|---|
+| `task_id` | 请求中传入的业务任务标识 |
+| `oss_source` | 原始文件的 OSS 路径 |
+| `oss_artifacts` | 已上传到 OSS 的结果文件列表，每项包含 `path`（相对路径）、`oss_key`（OSS 对象键）和 `url`（签名下载链接） |
+
+`oss_artifacts` 中的 `url` 为临时签名链接，有效期由服务端配置（默认 1 小时）。
+调用方可直接使用该链接下载结果文件，无需再通过 `/results/{job_id}` 接口获取。
+
+如果服务端未配置 OSS 凭据，该接口将返回 HTTP 500 错误。
+
+## 4. 成功响应
 
 解析接口为同步接口。提交后，连接会保持到排队、解析和结果保存全部完成。大
 PDF 可能需要较长时间，请将客户端读取超时设置为至少 10 分钟。
@@ -154,7 +301,7 @@ PDF 可能需要较长时间，请将客户端读取超时设置为至少 10 分
 
 调用方应保存 `job_id`，用于后续查询和下载结果。
 
-## 4. 查询任务
+## 5. 查询任务
 
 ```http
 GET /results/{job_id}
@@ -179,7 +326,7 @@ curl -s \
 
 失败时，响应或 `job.json` 中包含 `error` 字段。
 
-## 5. 下载结果文件
+## 6. 下载结果文件
 
 先从解析响应或任务查询响应的 `artifacts` 字段取得文件路径，然后调用：
 
@@ -204,7 +351,7 @@ curl -OJ \
 不同文件和处理模式生成的产物可能不同，应以响应中的 `artifacts` 为准，不要
 自行拼接或猜测文件名。
 
-## 6. Python 调用示例
+## 7. Python 调用示例
 
 ```python
 from pathlib import Path
@@ -267,7 +414,40 @@ response.raise_for_status()
 print(response.json()["text"])
 ```
 
-## 7. 限流与重试
+通过 OSS 路径解析：
+
+```python
+import requests
+
+BASE_URL = "http://example-host:18091"
+
+response = requests.post(
+    f"{BASE_URL}/parse_oss",
+    json={
+        "task_id": "order-12345",
+        "oss_path": "docs/medical/report.pdf",
+        "image_mode": "auto",
+    },
+    timeout=600,
+)
+
+if response.status_code == 429:
+    retry_after = response.headers.get("Retry-After", "10")
+    raise RuntimeError(f"服务繁忙，请在 {retry_after} 秒后重试")
+
+response.raise_for_status()
+result = response.json()
+
+print("任务 ID：", result["task_id"])
+print("解析 ID：", result["job_id"])
+print("执行耗时：", result["elapsed_sec"])
+print(result["text"])
+
+for artifact in result.get("oss_artifacts", []):
+    print(f"  {artifact['path']} -> {artifact['url']}")
+```
+
+## 8. 限流与重试
 
 对应处理队列已满时，服务返回：
 
@@ -295,7 +475,7 @@ Retry-After: 10
 4. 限制重试次数，例如最多重试 3 次。
 5. 不要对 HTTP `400` 错误自动重试。
 
-## 8. 错误码
+## 9. 错误码
 
 | HTTP 状态码 | 说明 | 建议 |
 |---:|---|---|
@@ -306,7 +486,7 @@ Retry-After: 10
 | 500 | OCR 或结果保存失败 | 保存 `job_id` 并联系服务管理员 |
 | 503 | 服务尚未准备好 | 稍后重试并检查 `/health` |
 
-## 9. 调用注意事项
+## 10. 调用注意事项
 
 - 病例整页图片建议使用 `auto` 或 `layout`。
 - 已裁剪的局部图片建议使用 `model_only`。
