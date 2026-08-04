@@ -33,15 +33,12 @@ vllm:
   gpu_memory_utilization: 0.6
   max_model_len: 8192
 
-oss:
-  # /parse_oss 接口使用。凭据优先从环境变量读取，也可在此填写。
-  # 未配置时 /parse_oss 不可用，其他接口不受影响。
-  endpoint: ""
-  access_key_id: ""
-  access_key_secret: ""
-  bucket_name: ""
-  prefix: glm_ocr_output
-  signed_url_expires_seconds: 3600
+# /parse_oss 的 OSS 凭据与回调地址仅通过部署运行环境注入（deploy/glm-ocr-v2/config.env），
+# 不要写在本 YAML 中。所需环境变量：
+#   OSS_ENDPOINT / OSS_ACCESS_KEY_ID / OSS_ACCESS_KEY_SECRET / OSS_BUCKET_NAME
+#   OSS_PREFIX（可选，默认 glm_ocr_output）
+#   OSS_SIGNED_URL_EXPIRES_SECONDS（可选，默认 3600）
+#   GLM_OCR_V2_CALLBACK_URL（任务完成后 POST 回调）
 
 layout:
   device: cuda:1
