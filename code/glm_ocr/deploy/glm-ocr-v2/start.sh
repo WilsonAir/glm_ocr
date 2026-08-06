@@ -6,11 +6,27 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 REPOSITORY_ROOT="$(cd "${PROJECT_ROOT}/../.." && pwd)"
 ENV_FILE="${GLM_OCR_V2_ENV_FILE:-${SCRIPT_DIR}/config.env}"
+# OSS 凭据只从仓库根目录 .env 读取（已 gitignore），禁止写入可提交的 config.env。
+REPO_DOTENV="${GLM_OCR_V2_DOTENV:-${REPOSITORY_ROOT}/.env}"
 
 if [[ -f "$ENV_FILE" ]]; then
+  if grep -qE '^[[:space:]]*OSS_(ENDPOINT|ACCESS_KEY_ID|ACCESS_KEY_SECRET|BUCKET_NAME)=' "$ENV_FILE"; then
+    echo "Warning: OSS credentials in ${ENV_FILE} are ignored; put them in ${REPO_DOTENV}" >&2
+  fi
   set -a
   # shellcheck disable=SC1090
   source "$ENV_FILE"
+  set +a
+fi
+
+# Drop any OSS secrets that may have been sourced from config.env, then load
+# the gitignored repository-root .env (same pattern as glm-ocr-task-queue).
+unset OSS_ENDPOINT OSS_ACCESS_KEY_ID OSS_ACCESS_KEY_SECRET OSS_BUCKET_NAME \
+  OSS_PREFIX OSS_SIGNED_URL_EXPIRES_SECONDS
+if [[ -f "$REPO_DOTENV" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$REPO_DOTENV"
   set +a
 fi
 

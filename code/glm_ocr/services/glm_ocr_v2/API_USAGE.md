@@ -268,20 +268,22 @@ curl -X POST '{BASE_URL}/parse_oss' \
 }
 ```
 
-### 环境变量（部署 config.env）
+### 环境变量
 
-`/parse_oss` 依赖的凭据与回调只通过运行环境注入，例如
-`deploy/glm-ocr-v2/config.env`，不要写入 YAML：
+`/parse_oss` 的 **OSS 凭据**只从仓库根目录 `.env` 注入（已在 `.gitignore`，
+与 task queue 共用），不要写入 YAML 或可提交的
+`deploy/glm-ocr-v2/config.env`。复制 `.env.example` 为 `.env` 并填写真实值。
+`start.sh` 启动时会自动 source 该文件。
 
-| 变量 | 必填 | 说明 |
-|---|---:|---|
-| `OSS_ENDPOINT` | 是 | OSS Endpoint |
-| `OSS_ACCESS_KEY_ID` | 是 | AccessKey ID |
-| `OSS_ACCESS_KEY_SECRET` | 是 | AccessKey Secret |
-| `OSS_BUCKET_NAME` | 是 | Bucket 名称 |
-| `OSS_PREFIX` | 否 | 结果前缀，默认 `glm_ocr_output` |
-| `OSS_SIGNED_URL_EXPIRES_SECONDS` | 否 | 签名链接有效期，默认 `3600` |
-| `GLM_OCR_V2_CALLBACK_URL` | 建议 | 完成后统一回调地址 |
+| 变量 | 必填 | 来源 | 说明 |
+|---|---:|---|---|
+| `OSS_ENDPOINT` | 是 | 仓库根 `.env` | OSS Endpoint |
+| `OSS_ACCESS_KEY_ID` | 是 | 仓库根 `.env` | AccessKey ID |
+| `OSS_ACCESS_KEY_SECRET` | 是 | 仓库根 `.env` | AccessKey Secret |
+| `OSS_BUCKET_NAME` | 是 | 仓库根 `.env` | Bucket 名称 |
+| `OSS_PREFIX` | 否 | 仓库根 `.env` | 结果前缀，默认 `glm_ocr_output` |
+| `OSS_SIGNED_URL_EXPIRES_SECONDS` | 否 | 仓库根 `.env` | 签名链接有效期，默认 `3600` |
+| `GLM_OCR_V2_CALLBACK_URL` | 建议 | `deploy/glm-ocr-v2/config.env` | 完成后统一回调地址 |
 
 未配置 OSS 凭据时，`/parse_oss` 返回 HTTP 503。
 

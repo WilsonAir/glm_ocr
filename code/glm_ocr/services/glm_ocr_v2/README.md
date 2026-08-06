@@ -367,5 +367,8 @@ cp deploy/glm-ocr-v2/config.env.example \
 code/glm_ocr/config/ocr_services_v2.yaml
 ```
 
-启动脚本会将该文件传给 v2 服务。`config.env` 只保留 Python、PPU SDK 和
-RTC 缓存等启动前必须确定的基础环境配置。
+启动脚本会将该文件传给 v2 服务。`config.env` 只保留 Python、PPU SDK、
+RTC 缓存和回调地址等启动前必须确定的基础环境配置。
+
+`/parse_oss` 所需的 OSS AccessKey 等凭据放在仓库根目录 `.env`（已 gitignore），
+不要写入 `config.env`。复制 `.env.example` 为 `.env` 后由 `start.sh` 自动加载。
