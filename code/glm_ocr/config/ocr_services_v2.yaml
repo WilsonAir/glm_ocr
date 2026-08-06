@@ -38,8 +38,7 @@ vllm:
 #   OSS_ENDPOINT / OSS_ACCESS_KEY_ID / OSS_ACCESS_KEY_SECRET / OSS_BUCKET_NAME
 #   OSS_PREFIX（可选，默认 glm_ocr_output）
 #   OSS_SIGNED_URL_EXPIRES_SECONDS（可选，默认 3600）
-# 回调地址可由 deploy/glm-ocr-v2/config.env 注入：
-#   GLM_OCR_V2_CALLBACK_URL（任务完成后 POST 回调）
+# 外层通过 /results/{job_id} 主动轮询任务状态，不需要反向回调。
 
 layout:
   device: cuda:1

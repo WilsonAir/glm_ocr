@@ -53,8 +53,6 @@ MIME_BY_SUFFIX = {
 }
 BEIJING_TIMEZONE = ZoneInfo("Asia/Shanghai")
 EXTERNAL_JOB_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,200}$")
-CALLBACK_MAX_ATTEMPTS = 3
-CALLBACK_RETRY_DELAY_SEC = 1.0
 
 _layout_parsers: dict[str, Any] = {}
 _parser_config_path = DEFAULT_CONFIG
@@ -80,7 +78,6 @@ _oss_bucket_name = ""
 _oss_prefix = "glm_ocr_output"
 _oss_signed_url_expires = 3600
 _oss_bucket: Any = None
-_callback_url = ""
 
 _pdf_running = 0
 _image_layout_running = 0
@@ -315,42 +312,6 @@ def _upload_to_oss(job_dir: Path, *, oss_output_prefix: str) -> list[dict[str, s
     return uploaded
 
 
-def _post_callback(payload: dict[str, Any]) -> None:
-    if not _callback_url:
-        logger.warning(
-            "GLM_OCR_V2_CALLBACK_URL is not set; skip callback for job=%s",
-            payload.get("job_id"),
-        )
-        return
-    last_error: Exception | None = None
-    for attempt in range(1, CALLBACK_MAX_ATTEMPTS + 1):
-        try:
-            response = requests.post(_callback_url, json=payload, timeout=30)
-            response.raise_for_status()
-            logger.info(
-                "Callback succeeded for job=%s attempt=%s",
-                payload.get("job_id"),
-                attempt,
-            )
-            return
-        except Exception as exc:
-            last_error = exc
-            logger.warning(
-                "Callback failed for job=%s (try %d/%d): %s",
-                payload.get("job_id"),
-                attempt,
-                CALLBACK_MAX_ATTEMPTS,
-                exc,
-            )
-            if attempt < CALLBACK_MAX_ATTEMPTS:
-                time.sleep(CALLBACK_RETRY_DELAY_SEC)
-    logger.error(
-        "Callback exhausted retries for job=%s: %s",
-        payload.get("job_id"),
-        last_error,
-    )
-
-
 def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
     """Run the official layout pipeline and persist all SDK artifacts."""
     if job.data is None:
@@ -436,7 +397,7 @@ def _run_model_only_job(job: QueueJob) -> dict[str, Any]:
 
 
 def _run_oss_job(job: QueueJob, runner: Any) -> dict[str, Any]:
-    """Download from OSS when the worker starts, parse, upload, then callback."""
+    """Download from OSS, parse, upload, and persist pollable metadata."""
     if not job.oss_path:
         raise RuntimeError("OSS job is missing oss_path")
     job_dir = _safe_job_dir(job.job_id)
@@ -469,7 +430,7 @@ def _run_oss_job(job: QueueJob, runner: Any) -> dict[str, Any]:
             oss_uploaded_at=_beijing_now(),
             oss_prefix=oss_output_prefix,
         )
-        callback_payload = {
+        result_payload = {
             "job_id": job.job_id,
             "attempt": job.attempt,
             "status": "completed",
@@ -483,8 +444,7 @@ def _run_oss_job(job: QueueJob, runner: Any) -> dict[str, Any]:
             "oss_artifacts": oss_artifacts,
             "finished_at": metadata.get("finished_at", _beijing_now()),
         }
-        _post_callback(callback_payload)
-        return {**result, **callback_payload}
+        return {**result, **result_payload}
     except Exception as exc:
         finished_at = _beijing_now()
         _update_metadata(
@@ -494,14 +454,6 @@ def _run_oss_job(job: QueueJob, runner: Any) -> dict[str, Any]:
             finished_at=finished_at,
             error=str(exc),
         )
-        _post_callback({
-            "job_id": job.job_id,
-            "attempt": job.attempt,
-            "status": "failed",
-            "queue": job.queue_name,
-            "error": str(exc),
-            "finished_at": finished_at,
-        })
         logger.exception("OSS parse failed for job=%s", job.job_id)
         raise
 
@@ -966,7 +918,7 @@ def main() -> None:
     global _pdf_workers, _image_layout_workers, _model_workers
     global _vllm_url, _vllm_model, _vllm_timeout, _vllm_max_tokens
     global _oss_endpoint, _oss_access_key_id, _oss_access_key_secret
-    global _oss_bucket_name, _oss_prefix, _oss_signed_url_expires, _callback_url
+    global _oss_bucket_name, _oss_prefix, _oss_signed_url_expires
     service_config_path = Path(args.service_config).expanduser().resolve()
     if not service_config_path.is_file():
         raise FileNotFoundError(f"GLM-OCR v2 service config not found: {service_config_path}")
@@ -1015,14 +967,12 @@ def main() -> None:
     _oss_bucket_name = os.environ.get("OSS_BUCKET_NAME", "")
     _oss_prefix = os.environ.get("OSS_PREFIX", "glm_ocr_output")
     _oss_signed_url_expires = int(os.environ.get("OSS_SIGNED_URL_EXPIRES_SECONDS", "3600"))
-    _callback_url = os.environ.get("GLM_OCR_V2_CALLBACK_URL", "").rstrip("/")
     if _oss_configured():
         logger.info(
-            "OSS configured: endpoint=%s bucket=%s prefix=%s callback=%s",
+            "OSS configured: endpoint=%s bucket=%s prefix=%s",
             _oss_endpoint,
             _oss_bucket_name,
             _oss_prefix,
-            bool(_callback_url),
         )
     else:
         logger.info(

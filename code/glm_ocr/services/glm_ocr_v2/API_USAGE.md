@@ -1,7 +1,7 @@
 # GLM-OCR 文档解析接口调用说明
 
 本文档面向 GLM-OCR 接口调用方，介绍 PDF、病例图片和局部裁剪图片的提交、
-结果查询及文件下载方法。支持文件上传（同步）或 OSS 路径（异步回调）两种方式。
+结果查询及文件下载方法。支持文件上传（同步）或 OSS 路径（异步轮询）两种方式。
 
 ## 接口地址
 
@@ -186,7 +186,7 @@ curl -X POST \
 {OSS_PREFIX}/{job_id}/output/attempt-{attempt}/
 ```
 
-完成后服务会向环境变量 `GLM_OCR_V2_CALLBACK_URL` 指定的地址 `POST` JSON 回调。
+调用方保存 `job_id`，并通过 `GET /results/{job_id}` 轮询任务状态。
 
 ```http
 POST /parse_oss
@@ -203,7 +203,7 @@ Content-Type: application/json
 | `attempt` | int | 否 | `1` | 重试次数编号，写入 `attempt-<n>` 输出路径 |
 
 入队前仅根据 `oss_path` 后缀选择队列；Worker 下载后会再用文件头校验类型，
-不一致则标记失败并回调。
+不一致则将任务标记为失败，调用方可从结果查询接口读取错误信息。
 
 请求示例：
 
@@ -231,9 +231,15 @@ curl -X POST '{BASE_URL}/parse_oss' \
 }
 ```
 
-### 完成回调
+### 查询异步任务状态
 
-回调地址由部署环境变量 `GLM_OCR_V2_CALLBACK_URL` 统一配置。成功示例：
+提交成功后，调用方定时查询任务状态：
+
+```http
+GET /results/{job_id}
+```
+
+任务仍在排队或处理中，响应中的 `status` 分别为 `queued` 或 `running`。完成示例：
 
 ```json
 {
@@ -255,7 +261,7 @@ curl -X POST '{BASE_URL}/parse_oss' \
 }
 ```
 
-失败示例：
+失败时 `status` 为 `failed`，并包含 `error`：
 
 ```json
 {
@@ -283,7 +289,6 @@ curl -X POST '{BASE_URL}/parse_oss' \
 | `OSS_BUCKET_NAME` | 是 | 仓库根 `.env` | Bucket 名称 |
 | `OSS_PREFIX` | 否 | 仓库根 `.env` | 结果前缀，默认 `glm_ocr_output` |
 | `OSS_SIGNED_URL_EXPIRES_SECONDS` | 否 | 仓库根 `.env` | 签名链接有效期，默认 `3600` |
-| `GLM_OCR_V2_CALLBACK_URL` | 建议 | `deploy/glm-ocr-v2/config.env` | 完成后统一回调地址 |
 
 未配置 OSS 凭据时，`/parse_oss` 返回 HTTP 503。
 
@@ -383,7 +388,7 @@ curl -OJ \
 ```
 
 不同文件和处理模式生成的产物可能不同，应以响应中的 `artifacts` 为准，不要
-自行拼接或猜测文件名。OSS 异步任务优先使用回调中的 `oss_artifacts`。
+自行拼接或猜测文件名。OSS 异步任务优先使用结果查询响应中的 `oss_artifacts`。
 
 ## 8. Python 调用示例
 
@@ -451,6 +456,8 @@ print(response.json()["text"])
 通过 OSS 路径异步解析：
 
 ```python
+import time
+
 import requests
 
 BASE_URL = "http://example-host:18091"
@@ -473,7 +480,21 @@ if response.status_code == 429:
 response.raise_for_status()
 accepted = response.json()
 print("已接受：", accepted["job_id"], accepted["status"])
-# 等待服务完成后回调 GLM_OCR_V2_CALLBACK_URL
+
+while True:
+    result = requests.get(
+        f"{BASE_URL}/results/{accepted['job_id']}",
+        timeout=30,
+    )
+    if result.status_code == 404:
+        time.sleep(5)
+        continue
+    result.raise_for_status()
+    payload = result.json()
+    if payload["status"] in {"completed", "failed"}:
+        print(payload)
+        break
+    time.sleep(5)
 ```
 
 ## 9. 限流与重试
@@ -509,7 +530,7 @@ Retry-After: 10
 | HTTP 状态码 | 说明 | 建议 |
 |---:|---|---|
 | 200 | `/parse` 解析成功 | 读取并保存 `job_id` |
-| 202 | `/parse_oss` 已接受 | 等待回调；保存 `job_id` |
+| 202 | `/parse_oss` 已接受 | 保存 `job_id`，轮询 `/results/{job_id}` |
 | 400 | 文件或参数错误 | 检查文件类型、`job_id` 和 `image_mode` |
 | 404 | UUID 或结果文件不存在 | 检查任务 ID 和 `artifacts` |
 | 429 | 服务队列已满 | 按 `Retry-After` 延迟重试 |
@@ -521,11 +542,11 @@ Retry-After: 10
 - 病例整页图片建议使用 `auto` 或 `layout`。
 - 已裁剪的局部图片建议使用 `model_only`。
 - 大 PDF 的处理时间与页数、版面区域数量有关。
-- `/parse_oss` 为异步接口：入队成功即返回，结果通过回调和 OSS 产物获取。
+- `/parse_oss` 为异步接口：入队成功即返回，结果通过 `/results/{job_id}` 和 OSS 产物获取。
 - `/parse_oss` 使用外层传入的 `job_id`，结果路径为
   `{OSS_PREFIX}/{job_id}/output/attempt-{attempt}/`。
 - 请求超时不代表服务端任务一定停止，请避免立即无条件重复提交。
 - 不要将同一文件高频重复提交。
-- 下载产物时必须使用响应中的 `artifacts` 或回调中的 `oss_artifacts` 路径。
+- 下载产物时必须使用结果响应中的 `artifacts` 或 `oss_artifacts` 路径。
 - `imgs/` 中的文件是版面分析识别出的图片或图表区域，不代表 OCR 失败。
 - 病例文件可能包含敏感信息，请仅通过服务管理员提供的受控网络地址调用。
