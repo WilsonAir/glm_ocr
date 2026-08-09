@@ -1,0 +1,54 @@
+# PaddleOCR-VL 统一服务配置（API 对齐 glm-ocr-v2）
+#
+# 版面识别按官方文档完整流水线：
+#   layout analysis (PP-DocLayoutV3) -> 裁剪/阅读顺序 -> VLM 识别 (vLLM)
+# 文档: https://www.paddleocr.ai/latest/en/version3.x/pipeline_usage/PaddleOCR-VL.html
+
+service:
+  host: 127.0.0.1
+  port: 18093
+  layout_device: cpu
+  pipeline_version: "v1.6"
+  use_layout_detection: true
+  output_root: result/paddle_ocr/framework
+  vl_rec_max_concurrency: 8
+
+layout:
+  # v1.6 官方默认版面模型
+  model_name: PP-DocLayoutV3
+  # 本地已下载则复用；置空则走官方自动下载
+  model_dir: /data/wilson_2/.paddlex/official_models/PP-DocLayoutV3
+
+# 官方 PDF 后处理 restructure_pages(...)
+restructure_pages:
+  merge_tables: true
+  relevel_titles: true
+  concatenate_pages: true
+
+queues:
+  pdf_layout:
+    capacity: 4
+    workers: 2
+  image_layout:
+    capacity: 8
+    workers: 1
+  model_only:
+    capacity: 8
+    workers: 4
+
+vllm:
+  # PaddleOCRVL(vl_rec_backend="vllm-server", vl_rec_server_url=...)
+  url: http://127.0.0.1:18081/v1
+  # 需与 vLLM /models 返回的 id 一致
+  model: PaddleOCR-VL-1.6
+  timeout: 600
+  max_tokens: 4096
+
+# /parse_oss 的 OSS 凭据仅从仓库根目录 .env（gitignore）注入。
+# start.sh 会把结果前缀设为 paddle_ocr_output（可用 PADDLE_OCR_OSS_PREFIX 覆盖）。
+
+runtime:
+  conda_env: paddle_ppu
+  python: /data/wilson_2/conda/envs/paddle_ppu/bin/python
+  log_file: code/paddle_ocr/logs/paddle_ocr_service.log
+  pid_file: code/paddle_ocr/logs/paddle_ocr_service.pid

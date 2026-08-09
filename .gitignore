@@ -7,9 +7,9 @@ __pycache__/
 
 # OCR outputs (markdown + json summaries; exclude images/page txt)
 result/**
-!result/**/
-!result/**/*.md
-!result/**/*.json
+result/**/
+result/**/*.md
+result/**/*.json
 logs/
 *.log
 

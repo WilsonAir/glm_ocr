@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PaddleOCR-VL framework inference (doc_parser pipeline + vLLM server)."""
+"""PaddleOCR-VL framework inference (official doc_parser + vLLM server)."""
 
 from __future__ import annotations
 
@@ -16,48 +16,38 @@ DEFAULT_LAYOUT_MODEL_DIR = Path(
     "/data/wilson_2/.paddlex/official_models/PP-DocLayoutV3"
 )
 DEFAULT_VLLM_URL = "http://127.0.0.1:18081/v1"
-DEFAULT_VLLM_MODEL = "paddleocr-vl-1.6"
+DEFAULT_VLLM_MODEL = "PaddleOCR-VL-1.6"
 DEFAULT_VLLM_MAX_CONCURRENCY = 8
 
 
-def merge_page_markdown(output_dir: Path, pdf_stem: str) -> Path:
-    """Merge per-page SDK markdown into one file (PaddleX saves {stem}_{page}.md per page)."""
-    page_files = sorted(
-        output_dir.glob(f"{pdf_stem}_*.md"),
-        key=lambda p: int(p.stem.rsplit("_", 1)[-1]),
-    )
-    if not page_files:
-        return output_dir / f"{pdf_stem}.md"
+def extract_markdown(pipeline, pages_res) -> str:
+    markdown_list = []
+    for res in pages_res:
+        md = getattr(res, "markdown", None)
+        if isinstance(md, dict):
+            markdown_list.append(md)
+    if not markdown_list:
+        return ""
+    text = pipeline.concatenate_markdown_pages(markdown_list)
+    if isinstance(text, tuple):
+        text = text[0] if text else ""
+    return str(text).strip()
 
-    merged_path = output_dir / f"{pdf_stem}.md"
-    parts = [
-        f"# PaddleOCR-VL Framework: {pdf_stem}.pdf",
-        "",
-        f"- Pages: {len(page_files)}",
-        f"- Per-page files: `{pdf_stem}_<page>.md`",
-        "",
-    ]
-    for page_file in page_files:
-        page_num = int(page_file.stem.rsplit("_", 1)[-1]) + 1
-        parts.extend([f"## Page {page_num}", "", page_file.read_text(encoding="utf-8").strip(), ""])
-    merged_path.write_text("\n".join(parts).rstrip() + "\n", encoding="utf-8")
-    return merged_path
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="PaddleOCR-VL doc_parser pipeline test")
+    parser = argparse.ArgumentParser(description="PaddleOCR-VL official pipeline test")
     parser.add_argument("--pdf", type=Path, default=DEFAULT_PDF)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--vllm-url", default=DEFAULT_VLLM_URL)
     parser.add_argument(
         "--vllm-model",
         default=DEFAULT_VLLM_MODEL,
-        help="vLLM served model name (must match --served-model-name in serve_paddleocr_vl.sh)",
+        help="vLLM served model name (must match /v1/models id)",
     )
     parser.add_argument(
         "--vllm-max-concurrency",
         type=int,
         default=DEFAULT_VLLM_MAX_CONCURRENCY,
-        help="Max parallel vLLM requests (paddlex default 200 can crash vLLM)",
     )
     parser.add_argument(
         "--layout-model-dir",
@@ -67,7 +57,7 @@ def main() -> None:
     parser.add_argument(
         "--device",
         default="cpu",
-        help="Paddle layout device; cpu required on PPU 2.0 (cudnn init fails on gpu). VL via vLLM stays on PPU.",
+        help="Layout device; cpu required on PPU 2.0 (cudnn init fails on gpu).",
     )
     args = parser.parse_args()
 
@@ -78,33 +68,54 @@ def main() -> None:
         from paddleocr import PaddleOCRVL
     except ImportError as exc:
         raise SystemExit(
-            "paddleocr not installed. Run: bash setup_env.sh\n" + str(exc)
+            "paddleocr not installed. Activate conda env paddle_ppu.\n" + str(exc)
         ) from exc
 
     args.output.mkdir(parents=True, exist_ok=True)
     started = time.perf_counter()
 
-    pipeline = PaddleOCRVL(
-        pipeline_version="v1.6",
-        vl_rec_backend="vllm-server",
-        vl_rec_server_url=args.vllm_url,
-        vl_rec_api_model_name=args.vllm_model,
-        vl_rec_max_concurrency=args.vllm_max_concurrency,
-        layout_detection_model_dir=str(args.layout_model_dir),
-        device=args.device,
-        use_queues=False,
+    # Official Python API:
+    #   PaddleOCRVL(vl_rec_backend="vllm-server", vl_rec_server_url=...)
+    #   predict() -> restructure_pages() -> save_to_json / save_to_markdown
+    pipeline_kwargs = {
+        "pipeline_version": "v1.6",
+        "vl_rec_backend": "vllm-server",
+        "vl_rec_server_url": args.vllm_url,
+        "vl_rec_api_model_name": args.vllm_model,
+        "vl_rec_max_concurrency": args.vllm_max_concurrency,
+        "use_layout_detection": True,
+        "layout_detection_model_name": "PP-DocLayoutV3",
+        "device": args.device,
+    }
+    if args.layout_model_dir.is_dir():
+        pipeline_kwargs["layout_detection_model_dir"] = str(args.layout_model_dir)
+
+    pipeline = PaddleOCRVL(**pipeline_kwargs)
+    pages_res = list(
+        pipeline.predict(input=str(args.pdf), use_layout_detection=True)
     )
-    outputs = pipeline.predict(str(args.pdf))
-    for res in outputs:
+    if len(pages_res) > 1:
+        pages_res = list(
+            pipeline.restructure_pages(
+                pages_res,
+                merge_tables=True,
+                relevel_titles=True,
+                concatenate_pages=True,
+            )
+        )
+    for res in pages_res:
         res.save_to_json(save_path=str(args.output))
         res.save_to_markdown(save_path=str(args.output))
 
-    merged_md = merge_page_markdown(args.output, args.pdf.stem)
+    markdown = extract_markdown(pipeline, pages_res)
+    merged_md = args.output / f"{args.pdf.stem}.md"
+    if markdown:
+        merged_md.write_text(markdown.rstrip() + "\n", encoding="utf-8")
 
     elapsed = time.perf_counter() - started
     summary = {
-        "mode": "framework_doc_parser",
-        "note": "layout on paddle cpu (PPU cudnn issue); VL recognition via vLLM on PPU gpu",
+        "mode": "official_paddleocr_vl_pipeline",
+        "note": "layout=PP-DocLayoutV3; VL via vLLM; PDF via restructure_pages",
         "pdf": str(args.pdf.resolve()),
         "vllm_url": args.vllm_url,
         "vllm_model": args.vllm_model,
@@ -113,7 +124,6 @@ def main() -> None:
         "layout_model_dir": str(args.layout_model_dir),
         "output_dir": str(args.output.resolve()),
         "markdown_merged": str(merged_md.resolve()),
-        "page_markdown_pattern": f"{args.pdf.stem}_<page>.md",
         "elapsed_sec": round(elapsed, 2),
         "finished_at": datetime.now(timezone.utc).isoformat(),
     }
