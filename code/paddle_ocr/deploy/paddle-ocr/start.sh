@@ -30,7 +30,7 @@ fi
 export OSS_PREFIX="${PADDLE_OCR_OSS_PREFIX:-paddle_ocr_output}"
 
 CONDA_BASE="${PADDLE_OCR_CONDA_BASE:-/data/wilson_2/conda}"
-CONDA_ENV="${PADDLE_OCR_CONDA_ENV:-paddle_ppu}"
+CONDA_ENV="${PADDLE_OCR_CONDA_ENV:-paddle_ocr}"
 PADDLE_OCR_PYTHON="${PADDLE_OCR_PYTHON:-${CONDA_BASE}/envs/${CONDA_ENV}/bin/python}"
 PADDLE_OCR_SERVICE_CONFIG="${PADDLE_OCR_SERVICE_CONFIG:-${PROJECT_ROOT}/config/ocr_services.yaml}"
 PADDLE_OCR_HOST="${PADDLE_OCR_HOST:-127.0.0.1}"
@@ -39,6 +39,7 @@ PADDLE_OCR_OUTPUT_ROOT="${PADDLE_OCR_OUTPUT_ROOT:-${REPOSITORY_ROOT}/result/padd
 PADDLE_OCR_LOG_DIR="${PADDLE_OCR_LOG_DIR:-${PROJECT_ROOT}/logs}"
 PADDLE_OCR_LOG_FILE="${PADDLE_OCR_LOG_FILE:-${PADDLE_OCR_LOG_DIR}/paddle_ocr_service.log}"
 PADDLE_OCR_PID_FILE="${PADDLE_OCR_PID_FILE:-${PADDLE_OCR_LOG_DIR}/paddle_ocr_service.pid}"
+PADDLE_OCR_DEPS_DIR="${PADDLE_OCR_DEPS_DIR:-${PROJECT_ROOT}/.deps}"
 PADDLEX_HOME="${PADDLEX_HOME:-/data/wilson_2/.paddlex}"
 CUDNN_HOME="${CUDNN_HOME:-/usr/local/PPU_SDK/CUDA_SDK}"
 PPU_SDK="${PPU_SDK:-/usr/local/PPU_SDK}"
@@ -102,17 +103,45 @@ running && {
 mkdir -p "$PADDLE_OCR_LOG_DIR" "$PADDLE_OCR_OUTPUT_ROOT"
 export PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
 export PADDLEX_HOME CUDNN_HOME
-export LD_LIBRARY_PATH="${PPU_SDK}/lib:${CUDNN_HOME}/lib64:${LD_LIBRARY_PATH:-}"
-# Prefer paddle libs from shared PPU stack if present.
-for _d in \
-  "${CONDA_BASE}/envs/${CONDA_ENV}/lib/python3.12/site-packages/paddle/libs" \
-  /data/wilson_2/de/paddle_ocr/.venv/lib/python3.12/site-packages/paddle/libs
-do
-  if [[ -d "$_d" ]]; then
-    export LD_LIBRARY_PATH="${_d}:${LD_LIBRARY_PATH}"
-    break
+# Isolate from ~/.local user-site (broken oss2/aliyunsdkcore mixes, etc.).
+# Prefer packages in the paddle_ocr conda env; fall back to PADDLE_OCR_DEPS_DIR
+# when the env is root-owned / not writable.
+export PYTHONNOUSERSITE="${PYTHONNOUSERSITE:-1}"
+if [[ -n "${PYTHONPATH:-}" ]]; then
+  _cleaned=""
+  IFS=':' read -r -a _parts <<< "$PYTHONPATH"
+  for _p in "${_parts[@]}"; do
+    [[ -z "$_p" || "$_p" == *'/.local/'* ]] && continue
+    _cleaned="${_cleaned:+$_cleaned:}${_p}"
+  done
+  if [[ -n "$_cleaned" ]]; then
+    export PYTHONPATH="$_cleaned"
+  else
+    unset PYTHONPATH
   fi
-done
+  unset _cleaned _parts _p
+fi
+if [[ -d "$PADDLE_OCR_DEPS_DIR" ]]; then
+  export PYTHONPATH="${PADDLE_OCR_DEPS_DIR}${PYTHONPATH:+:$PYTHONPATH}"
+fi
+# Prefer NVIDIA pip CUDA libs shipped with paddlepaddle-gpu. Prepending PPU_SDK
+# libcudart breaks import (undefined symbol: __cudaGetKernel).
+_SITE="${CONDA_BASE}/envs/${CONDA_ENV}/lib/python3.12/site-packages"
+_LD_PARTS=()
+[[ -d "${_SITE}/paddle/libs" ]] && _LD_PARTS+=("${_SITE}/paddle/libs")
+if [[ -d "${_SITE}/nvidia" ]]; then
+  while IFS= read -r _nlib; do
+    _LD_PARTS+=("$_nlib")
+  done < <(find "${_SITE}/nvidia" -type d -name lib 2>/dev/null | sort)
+fi
+if [[ "${PADDLE_OCR_USE_PPU_SDK:-0}" == "1" ]]; then
+  _LD_PARTS+=("${PPU_SDK}/lib" "${CUDNN_HOME}/lib64")
+fi
+_LD_PREFIX="$(IFS=:; echo "${_LD_PARTS[*]}")"
+if [[ -n "$_LD_PREFIX" ]]; then
+  export LD_LIBRARY_PATH="${_LD_PREFIX}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
+unset _SITE _LD_PARTS _LD_PREFIX _nlib
 export PYTHONUNBUFFERED=1
 export TMPDIR="${TMPDIR:-/data/wilson_2/tmp}"
 

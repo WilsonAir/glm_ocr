@@ -12,7 +12,10 @@ glm_ocr/
 │   │   ├── input_utils.py      # 输入文件类型判断
 │   │   ├── config.yaml         # SDK 配置（指向本地 vLLM）
 │   │   └── run_both.sh         # model_only + framework 一键跑
-│   └── paddle_ocr/          # PaddleOCR-VL 部署脚本
+│   └── paddle_ocr/          # PaddleOCR-VL（vLLM + HTTP 解析服务）
+│       ├── deploy/paddle-ocr/   # start.sh / config.env（端口 18093）
+│       ├── services/paddle_ocr/ # FastAPI：/parse、/parse_oss、/queue_status
+│       └── config/ocr_services.yaml
 ├── result/                  # OCR 输出与对比
 │   ├── glm_ocr/
 │   ├── paddle_ocr/
@@ -286,12 +289,54 @@ for page in pages[:5]:
 
 ## PaddleOCR-VL 快速开始
 
+### 环境与 vLLM
+
+Conda 环境：`paddle_ocr`。解析服务启动脚本见 `code/paddle_ocr/deploy/paddle-ocr/`。
+
 ```bash
 cd code/paddle_ocr
-bash setup_env.sh
-bash install_paddle_ppu.sh
-bash serve_paddleocr_vl.sh    # 端口 18081
+source activate_paddle_ocr.sh
+# vLLM（若尚未启动）：默认 http://127.0.0.1:18081 ，模型名 PaddleOCR-VL-1.6
+bash serve_paddleocr_vl.sh
+```
+
+### HTTP 解析服务（推荐）
+
+```bash
+cd code/paddle_ocr
+bash deploy/paddle-ocr/start.sh
+bash deploy/paddle-ocr/start.sh --status
+```
+
+- 本机：`http://127.0.0.1:18093`
+- 网关：`http://<host>:18780/paddle-ocr`（nginx → `:18093`）
+- 接口文档：[`code/paddle_ocr/services/paddle_ocr/API_USAGE.md`](code/paddle_ocr/services/paddle_ocr/API_USAGE.md)
+
+常用接口：`/health`、`/queue_status`、`/parse`、`/parse_oss`、`/results/{job_id}`。
+
+```bash
+curl -s http://127.0.0.1:18780/paddle-ocr/health
+curl -s http://127.0.0.1:18780/paddle-ocr/queue_status
+```
+
+### 离线脚本（framework / model_only）
+
+```bash
+cd code/paddle_ocr
 bash run_both.sh
+```
+
+SDK 调用时需指定与 vLLM 一致的模型名，例如：
+
+```python
+from paddleocr import PaddleOCRVL
+
+pipeline = PaddleOCRVL(
+    pipeline_version="v1.6",
+    vl_rec_backend="vllm-server",
+    vl_rec_server_url="http://127.0.0.1:18081/v1",
+    vl_rec_api_model_name="PaddleOCR-VL-1.6",
+)
 ```
 
 ## OCR 对比分析

@@ -68,7 +68,7 @@ def main() -> None:
         from paddleocr import PaddleOCRVL
     except ImportError as exc:
         raise SystemExit(
-            "paddleocr not installed. Activate conda env paddle_ppu.\n" + str(exc)
+            "paddleocr not installed. Activate conda env paddle_ocr.\n" + str(exc)
         ) from exc
 
     args.output.mkdir(parents=True, exist_ok=True)

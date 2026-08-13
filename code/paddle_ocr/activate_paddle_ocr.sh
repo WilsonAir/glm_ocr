@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Activate conda env paddle_ppu for PaddleOCR-VL.
+# Activate conda env paddle_ocr for PaddleOCR-VL.
 export PADDLE_OCR_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 CONDA_BASE="${CONDA_BASE:-/data/wilson_2/soft/miniforge3}"
-CONDA_ENV_NAME="${CONDA_ENV_NAME:-paddle_ppu}"
+CONDA_ENV_NAME="${CONDA_ENV_NAME:-paddle_ocr}"
 
 if [[ ! -f "$CONDA_BASE/etc/profile.d/conda.sh" ]]; then
   echo "ERROR: conda not found at $CONDA_BASE" >&2

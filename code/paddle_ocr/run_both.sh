@@ -17,7 +17,7 @@ echo "=== [2/2] PaddleOCR-VL framework (doc_parser + vLLM) ==="
 if "$PYTHON" -c "import paddleocr" 2>/dev/null; then
   bash "$PROJECT_ROOT/run_framework.sh"
 else
-  echo "SKIP: paddleocr not available in conda env paddle_ppu"
+  echo "SKIP: paddleocr not available in conda env paddle_ocr"
   mkdir -p "$PROJECT_ROOT/result/framework"
   echo '{"skipped": true, "reason": "paddleocr not installed"}' > "$PROJECT_ROOT/result/framework/summary.json"
 fi

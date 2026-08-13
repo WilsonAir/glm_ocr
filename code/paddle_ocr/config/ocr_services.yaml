@@ -48,7 +48,7 @@ vllm:
 # start.sh 会把结果前缀设为 paddle_ocr_output（可用 PADDLE_OCR_OSS_PREFIX 覆盖）。
 
 runtime:
-  conda_env: paddle_ppu
-  python: /data/wilson_2/conda/envs/paddle_ppu/bin/python
+  conda_env: paddle_ocr
+  python: /data/wilson_2/conda/envs/paddle_ocr/bin/python
   log_file: code/paddle_ocr/logs/paddle_ocr_service.log
   pid_file: code/paddle_ocr/logs/paddle_ocr_service.pid
