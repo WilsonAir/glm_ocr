@@ -14,16 +14,16 @@ GLM-OCR v3 在 [v2](../glm_ocr_v2/README.md) 队列与解析能力之上，增�
 默认监听地址：
 
 ```text
-http://127.0.0.1:18093
+http://127.0.0.1:18094
 ```
 
-可与 v2（`18091`）和 task-queue（`18092`）并行部署，互不影响。
+可与 v2（`18091`）、task-queue（`18092`）、paddle-ocr（`18093`）并行部署。
 
 ## 与 v2 的差异
 
 | 项 | v2 | v3 |
 |---|---|---|
-| 默认端口 | `18091` | `18093`（勿占用 task-queue 的 `18092`） |
+| 默认端口 | `18091` | `18094`（避开 task-queue `18092`、paddle `18093`） |
 | 输出目录 | `result/glm_ocr/framework` | `result/glm_ocr/framework_v3` |
 | Layout 后处理 | 无 | `imgs/` → VL 文本 / Caption |
 | 请求参数 | `image_mode` | 另增 `enrich_figures`（默认 `true`） |
@@ -43,7 +43,7 @@ http://127.0.0.1:18093
 ## 1. 健康检查
 
 ```bash
-curl -s http://127.0.0.1:18093/health | python -m json.tool
+curl -s http://127.0.0.1:18094/health | python -m json.tool
 ```
 
 响应中额外包含：
@@ -74,7 +74,7 @@ Content-Type: multipart/form-data
 
 ```bash
 curl -X POST \
-  'http://127.0.0.1:18093/parse?image_mode=layout&enrich_figures=true' \
+  'http://127.0.0.1:18094/parse?image_mode=layout&enrich_figures=true' \
   -F 'file=@/path/to/document.pdf'
 ```
 
@@ -82,7 +82,7 @@ curl -X POST \
 
 ```bash
 curl -X POST \
-  'http://127.0.0.1:18093/parse?enrich_figures=false' \
+  'http://127.0.0.1:18094/parse?enrich_figures=false' \
   -F 'file=@/path/to/document.pdf'
 ```
 
@@ -162,7 +162,7 @@ code/glm_ocr/logs/glm_ocr_v3_service.log
 
 | YAML 配置 | 默认值 | 说明 |
 |---|---|---|
-| `service.port` | `18093` | 服务端口 |
+| `service.port` | `18094` | 服务端口 |
 | `service.output_root` | `result/glm_ocr/framework_v3` | UUID 输出根目录 |
 | `figure_enrichment.enabled` | `true` | 全局开关 |
 | `figure_enrichment.max_images` | `64` | 单任务最多转换图数 |

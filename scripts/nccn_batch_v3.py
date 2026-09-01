@@ -3,7 +3,7 @@
 
 Example:
   python scripts/nccn_batch_v3.py \\
-    --base-url http://127.0.0.1:18093 \\
+    --base-url http://127.0.0.1:18094 \\
     --pdf-dir /mnt/d/de/de/pdf/NCCN \\
     --out-dir result/glm_ocr/nccn_test_v3
 """
@@ -21,7 +21,7 @@ import requests
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-url", default="http://127.0.0.1:18093")
+    parser.add_argument("--base-url", default="http://127.0.0.1:18094")
     parser.add_argument("--pdf-dir", default="/mnt/d/de/de/pdf/NCCN")
     parser.add_argument("--out-dir", default="result/glm_ocr/nccn_test_v3")
     parser.add_argument("--workers", type=int, default=1)

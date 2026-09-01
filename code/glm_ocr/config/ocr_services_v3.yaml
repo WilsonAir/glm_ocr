@@ -5,8 +5,8 @@
 
 service:
   host: 127.0.0.1
-  # 18092 已被 task_queue 占用；figure-enrichment 服务使用 18093。
-  port: 18093
+  # 18091=v2, 18092=task_queue, 18093=paddle-ocr；figure-enrichment 使用 18094。
+  port: 18094
   sdk_config: code/glm_ocr/config/glm_ocr.yaml
   layout_device: cuda:1
   output_root: result/glm_ocr/framework_v3

@@ -14,7 +14,7 @@
 例如：
 
 ```text
-http://example-host:18093
+http://example-host:18094
 ```
 
 ## 支持的文件类型
@@ -410,7 +410,7 @@ from pathlib import Path
 
 import requests
 
-BASE_URL = "http://example-host:18093"
+BASE_URL = "http://example-host:18094"
 FILE_PATH = Path("/path/to/document.pdf")
 
 with FILE_PATH.open("rb") as file_obj:
@@ -445,7 +445,7 @@ from pathlib import Path
 
 import requests
 
-BASE_URL = "http://example-host:18093"
+BASE_URL = "http://example-host:18094"
 IMAGE_PATH = Path("/path/to/crop.png")
 
 with IMAGE_PATH.open("rb") as file_obj:
@@ -473,7 +473,7 @@ import time
 
 import requests
 
-BASE_URL = "http://example-host:18093"
+BASE_URL = "http://example-host:18094"
 
 response = requests.post(
     f"{BASE_URL}/parse_oss",
