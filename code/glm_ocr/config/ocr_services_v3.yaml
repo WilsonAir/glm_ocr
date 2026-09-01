@@ -1,0 +1,72 @@
+# GLM-OCR v3 统一服务配置
+#
+# 在 v2 队列能力之上，对 layout 产物 imgs/ 做二次 VL 文本化（流程图 Mermaid /
+# 表格 / Image Caption 等）。环境变量仍可覆盖同名运行参数。
+
+service:
+  host: 127.0.0.1
+  port: 18092
+  sdk_config: code/glm_ocr/config/glm_ocr.yaml
+  layout_device: cuda:1
+  output_root: result/glm_ocr/framework_v3
+
+queues:
+  pdf_layout:
+    capacity: 4
+    workers: 2
+    # 每个 Worker 使用独立 SDK Parser。
+  image_layout:
+    capacity: 8
+    workers: 1
+    # 病例整页图片及 image_mode=layout。
+  model_only:
+    capacity: 8
+    workers: 4
+    # 裁剪图直接访问 vLLM，不执行 Layout。
+
+vllm:
+  url: http://127.0.0.1:18080/v1/chat/completions
+  model: glm-ocr
+  timeout: 300
+  max_tokens: 4096
+  # vLLM 独占卡 2；其进程参数仍由 deploy/ocr-vllm/config.env 管理。
+  device: 2
+  gpu_memory_utilization: 0.6
+  max_model_len: 8192
+
+# Layout 完成后，对 imgs/ 中的 chart/image 裁剪再调一次 VL。
+figure_enrichment:
+  enabled: true
+  max_images: 64
+  max_workers: 2
+  timeout: 300
+  max_tokens: 4096
+  # prompt 留空则使用内置默认（流程图→Mermaid，不可文本化→Image Caption）。
+  # prompt: |
+
+# /parse_oss 的 OSS 凭据仅从仓库根目录 .env（gitignore）注入，不要写在本 YAML
+# 或可提交的 deploy/glm-ocr-v3/config.env 中。所需环境变量：
+#   OSS_ENDPOINT / OSS_ACCESS_KEY_ID / OSS_ACCESS_KEY_SECRET / OSS_BUCKET_NAME
+#   OSS_PREFIX（可选，默认 glm_ocr_output）
+#   OSS_SIGNED_URL_EXPIRES_SECONDS（可选，默认 3600）
+# 外层通过 /results/{job_id} 主动轮询任务状态，不需要反向回调。
+
+layout:
+  device: cuda:1
+  physical_device: 1
+  memory_gb: 96
+  parser_instances:
+    pdf: 2
+    image: 1
+
+ppu:
+  sdk: /usr/local/PPU_SDK
+  home: /usr/local/PPU_SDK
+  cuda_path: /usr/local/PPU_SDK/CUDA_SDK
+  rtc_cache_dir: /data/wilson_2/cache/rtccache
+  rtc_cache_link: /home/whs/.rtccache
+
+runtime:
+  python: /data/wilson_2/soft/miniforge3/envs/med_rag_cuda/bin/python
+  log_file: code/glm_ocr/logs/glm_ocr_v3_service.log
+  pid_file: code/glm_ocr/logs/glm_ocr_v3_service.pid
