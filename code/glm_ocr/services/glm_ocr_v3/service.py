@@ -40,7 +40,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_CONFIG = GLM_OCR_ROOT / "config" / "glm_ocr.yaml"
 DEFAULT_SERVICE_CONFIG = GLM_OCR_ROOT / "config" / "ocr_services_v3.yaml"
 DEFAULT_OUTPUT_ROOT = REPOSITORY_ROOT / "result" / "glm_ocr" / "framework_v3"
-DEFAULT_PORT = 18092
+DEFAULT_PORT = 18093
 
 SUPPORTED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp"}
 SUPPORTED_PDF_SUFFIXES = {".pdf"}
