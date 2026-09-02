@@ -27,8 +27,13 @@ from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-from figure_enrichment import DEFAULT_FIGURE_PROMPT, enrich_job_figures
-
+from figure_enrichment import (
+    DEFAULT_FIGURE_PROMPT,
+    FIGURE_PROMPT_PROFILES,
+    MERMAID_CLINICAL_PROMPT,
+    enrich_job_figures,
+    resolve_figure_prompt,
+)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -75,11 +80,13 @@ _vllm_max_tokens = 4096
 
 _figure_enrichment_enabled = True
 _figure_prompt = DEFAULT_FIGURE_PROMPT
+_figure_fallback_prompt: str | None = MERMAID_CLINICAL_PROMPT
+_figure_prompt_profile = "default"
+_figure_fallback_profile = "mermaid_clinical"
 _figure_max_images = 64
 _figure_max_workers = 2
 _figure_timeout = 300
 _figure_max_tokens = 4096
-
 _oss_endpoint = ""
 _oss_access_key_id = ""
 _oss_access_key_secret = ""
@@ -347,12 +354,12 @@ def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
                 vllm_url=_vllm_url,
                 vllm_model=_vllm_model,
                 prompt=_figure_prompt,
+                fallback_prompt=_figure_fallback_prompt,
                 timeout=_figure_timeout,
                 max_tokens=_figure_max_tokens,
                 max_images=_figure_max_images,
                 max_workers=_figure_max_workers,
-            )
-        metadata = _update_metadata(
+            )        metadata = _update_metadata(
             job_dir,
             status="completed",
             chars=len(markdown),
@@ -719,6 +726,9 @@ async def health() -> dict[str, Any]:
             "enabled": _figure_enrichment_enabled,
             "max_images": _figure_max_images,
             "max_workers": _figure_max_workers,
+            "prompt_profile": _figure_prompt_profile,
+            "fallback_prompt_profile": _figure_fallback_profile,
+            "available_profiles": sorted(FIGURE_PROMPT_PROFILES),
         },
         "queues": {
             "pdf_layout": _queue_snapshot(
@@ -977,7 +987,8 @@ def main() -> None:
     global _pdf_queue_capacity, _image_layout_queue_capacity, _model_queue_capacity
     global _pdf_workers, _image_layout_workers, _model_workers
     global _vllm_url, _vllm_model, _vllm_timeout, _vllm_max_tokens
-    global _figure_enrichment_enabled, _figure_prompt, _figure_max_images
+    global _figure_enrichment_enabled, _figure_prompt, _figure_fallback_prompt
+    global _figure_prompt_profile, _figure_fallback_profile, _figure_max_images
     global _figure_max_workers, _figure_timeout, _figure_max_tokens
     global _oss_endpoint, _oss_access_key_id, _oss_access_key_secret
     global _oss_bucket_name, _oss_prefix, _oss_signed_url_expires
@@ -1025,8 +1036,31 @@ def main() -> None:
     _vllm_max_tokens = int(vllm.get("max_tokens", 4096))
 
     _figure_enrichment_enabled = bool(figure_cfg.get("enabled", True))
+    _figure_prompt_profile = str(figure_cfg.get("prompt_profile", "default")).strip().lower()
+    _figure_fallback_profile = str(
+        figure_cfg.get("fallback_prompt_profile", "mermaid_clinical")
+    ).strip().lower()
+    # Custom prompt text overrides profile when non-empty.
     prompt_value = figure_cfg.get("prompt")
-    _figure_prompt = str(prompt_value).strip() if prompt_value else DEFAULT_FIGURE_PROMPT
+    _figure_prompt = resolve_figure_prompt(
+        profile=_figure_prompt_profile,
+        prompt=str(prompt_value).strip() if prompt_value else None,
+    )
+    fallback_value = figure_cfg.get("fallback_prompt")
+    if fallback_value is False or _figure_fallback_profile in {"", "none", "off"}:
+        _figure_fallback_prompt = None
+        _figure_fallback_profile = "none"
+    elif fallback_value and str(fallback_value).strip():
+        _figure_fallback_prompt = str(fallback_value).strip()
+    else:
+        _figure_fallback_prompt = resolve_figure_prompt(profile=_figure_fallback_profile)
+    # Avoid duplicate VL call when primary already is the clinical profile.
+    if (
+        _figure_fallback_prompt
+        and _figure_fallback_prompt.strip() == _figure_prompt.strip()
+    ):
+        _figure_fallback_prompt = None
+        _figure_fallback_profile = "none"
     _figure_max_images = int(figure_cfg.get("max_images", 64))
     _figure_max_workers = int(figure_cfg.get("max_workers", 2))
     _figure_timeout = int(figure_cfg.get("timeout", _vllm_timeout))
@@ -1054,11 +1088,14 @@ def main() -> None:
     import uvicorn
 
     logger.info(
-        "Starting GLM-OCR v3 on %s:%d (output=%s, figure_enrichment=%s)",
+        "Starting GLM-OCR v3 on %s:%d (output=%s, figure_enrichment=%s, "
+        "prompt_profile=%s, fallback_profile=%s)",
         host,
         port,
         _output_root,
         _figure_enrichment_enabled,
+        _figure_prompt_profile,
+        _figure_fallback_profile,
     )
     uvicorn.run(app, host=host, port=port, log_level="info")
 

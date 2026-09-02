@@ -29,35 +29,117 @@ MARKDOWN_IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
 DEFAULT_FIGURE_PROMPT = """\
 You are converting a document region image into an editable text form.
 
-Decide the best representation and follow these rules strictly:
+PRIORITY: prefer Mermaid whenever the figure has nodes, branches, arrows,
+decision diamonds, pathways, algorithms, or hierarchical structure.
 
-1. Flowchart / process / decision tree / pathway diagram:
-   Output a Mermaid flowchart in a fenced code block:
+Rules (apply in order):
+
+1. Flowchart / process / decision tree / clinical pathway / treatment algorithm /
+   risk-stratification diagram / any box-and-arrow diagram:
+   ALWAYS output Mermaid. Do NOT use plain Markdown lists or ```markdown blocks.
+   Use a fenced Mermaid code block only:
    ```mermaid
    flowchart TD
-     ...
+     A["Node text"] --> B{"Decision?"}
+     B -->|Yes| C["Next step"]
+     B -->|No| D["Alternative"]
    ```
-   Preserve node text, branch conditions, and direction as faithfully as possible.
+   Requirements for Mermaid:
+   - Prefer `flowchart TD` (or `flowchart LR` if the original is left-to-right).
+   - Put full node labels in quotes: A["exact text from the figure"].
+   - Preserve branch conditions on edges: -->|condition|.
+   - Keep readable text, footnotes markers, and units faithfully.
+   - Do not invent missing clinical steps.
 
-2. Chart / plot / graph with readable labels or values:
-   Prefer a Markdown table of extracted data, then one short summary sentence.
+2. Hierarchy / org / taxonomy / architecture schematic:
+   Prefer Mermaid (`flowchart TD` or `mindmap`). Nested lists only if Mermaid
+   cannot represent it cleanly.
 
-3. Table-like region or structured panel:
-   Output a Markdown table (or HTML table if spans/merged cells are essential).
+3. Chart / plot / graph with readable labels or values:
+   Markdown table of extracted data, then one short summary sentence.
 
-4. Schematic / architecture / hierarchy that is still structural:
-   Use Mermaid or nested Markdown lists.
+4. True table-like region (grid of cells, not a pathway):
+   Markdown table (or HTML table if merged cells are essential).
 
 5. Photo, logo, stamp, decorative art, or any figure that cannot be faithfully
    turned into editable structured text:
    Output exactly:
    **Image Caption:** <concise factual caption>
 
-Requirements:
-- Keep all readable text, numbers, units, and relationships.
-- Do not invent missing values or clinical advice.
-- Output ONLY the converted content. No preamble or closing remarks.
+Output ONLY the converted content. No preamble or closing remarks.
 """
+
+# Clinical pathway / NCCN-style flowchart specialist (optional primary or fallback).
+MERMAID_CLINICAL_PROMPT = """\
+# Role: Mermaid Chart Expert & OCR Specialist
+
+## Task
+Your goal is to analyze the provided medical/clinical flowchart image and convert it into valid, executable Mermaid.js code. You must capture every detail, including text, footnotes, and logical flow.
+
+If the image is clearly NOT a flowchart/pathway/decision diagram (e.g. photo, logo, plain table, scatter plot), output exactly:
+**Image Caption:** <concise factual caption>
+and stop.
+
+## Analysis Steps
+1. **Identify Structure**: Determine the main columns or phases (usually represented by top headers). These will be your `subgraph` containers.
+2. **Extract Nodes**: Read every box. Preserve exact text, including superscripts/subscripts (e.g., ᵃᵃ, ᵇᵇ) and line breaks (`<br>`).
+3. **Trace Edges**: Follow every arrow. Identify the source node, the target node, and any edge labels (text written on the arrow lines).
+4. **Handle Complexity**: Pay attention to decision diamonds, loops, and cross-column connections.
+
+## Output Requirements
+1. **Format**: Output ONLY the Mermaid code block. Do not add conversational filler before or after.
+2. **Syntax**: Use `flowchart LR` (Left to Right) unless the image is clearly Top-Down.
+3. **Subgraphs**: Use `subgraph` to represent the main column headers (e.g., "RISK STRATIFICATION", "TREATMENT INDUCTION").
+4. **Styling**:
+   - Use `classDef` to style nodes that look like links (blue/underlined) vs. standard boxes.
+   - Use `<br>` for multi-line text inside nodes.
+5. **Accuracy**:
+   - Do NOT summarize. Transcribe text exactly.
+   - If a node connects to another across a long distance, ensure the ID linkage is correct.
+   - Include all footnote markers visible in the text.
+
+## Example Structure
+```mermaid
+flowchart LR
+    subgraph Phase1 [HEADER TEXT]
+       A[Node Text] --> B{Decision}
+    end
+    subgraph Phase2 [NEXT HEADER]
+       B -->|Edge Label| C[Next Node]
+    end
+```
+"""
+
+FIGURE_PROMPT_PROFILES: dict[str, str] = {
+    "default": DEFAULT_FIGURE_PROMPT,
+    "mermaid_clinical": MERMAID_CLINICAL_PROMPT,
+}
+
+
+def resolve_figure_prompt(
+    *,
+    profile: str | None = None,
+    prompt: str | None = None,
+) -> str:
+    """Resolve active prompt from custom text or a named profile."""
+    if prompt and str(prompt).strip():
+        return str(prompt).strip()
+    key = (profile or "default").strip().lower()
+    if key not in FIGURE_PROMPT_PROFILES:
+        known = ", ".join(sorted(FIGURE_PROMPT_PROFILES))
+        raise ValueError(f"Unknown figure prompt profile {key!r}; known: {known}")
+    return FIGURE_PROMPT_PROFILES[key]
+
+
+def should_retry_with_fallback(kind: str, text: str) -> bool:
+    """Retry with clinical Mermaid prompt when primary missed flowchart form."""
+    if kind in {"flowchart", "caption", "table"}:
+        return False
+    lower = text.lower()
+    # Structured markdown / plain text often means a pathway was not mermaid-ized.
+    if "```markdown" in lower or kind in {"structured", "text"}:
+        return True
+    return False
 
 
 @dataclass(slots=True)
@@ -90,13 +172,30 @@ def detect_figure_kind(text: str) -> str:
     lower = stripped.lower()
     if lower.startswith("**image caption:**") or lower.startswith("image caption:"):
         return "caption"
-    if "```mermaid" in lower or "flowchart td" in lower or "flowchart lr" in lower:
+    if (
+        "```mermaid" in lower
+        or re.search(r"(?m)^(flowchart|graph)\s+(td|lr|tb|rl)\b", lower)
+        or ("-->" in stripped and re.search(r"\b(flowchart|graph)\b", lower))
+    ):
         return "flowchart"
     if "<table" in lower or stripped.startswith("|"):
         return "table"
     if "```" in stripped:
         return "structured"
     return "text"
+
+
+def normalize_mermaid_output(text: str) -> str:
+    """Ensure pathway-like Mermaid bodies are wrapped in ```mermaid fences."""
+    stripped = text.strip()
+    if not stripped:
+        return text
+    lower = stripped.lower()
+    if "```mermaid" in lower:
+        return stripped
+    if re.match(r"(?is)^(flowchart|graph)\s+(td|lr|tb|rl)\b", stripped):
+        return f"```mermaid\n{stripped}\n```"
+    return stripped
 
 
 def format_replacement(text: str, *, kind: str, alt: str = "") -> str:
@@ -151,14 +250,38 @@ def convert_one_figure(
     *,
     caller: Callable[..., str],
     prompt: str,
+    fallback_prompt: str | None = None,
 ) -> FigureResult:
     relative = image_path.relative_to(job_dir).as_posix()
     try:
-        text = caller(image_path, prompt=prompt).strip()
+        text = normalize_mermaid_output(caller(image_path, prompt=prompt).strip())
         kind = detect_figure_kind(text)
+        used_fallback = False
+        if (
+            fallback_prompt
+            and fallback_prompt.strip()
+            and fallback_prompt.strip() != prompt.strip()
+            and should_retry_with_fallback(kind, text)
+        ):
+            retry = normalize_mermaid_output(
+                caller(image_path, prompt=fallback_prompt).strip()
+            )
+            retry_kind = detect_figure_kind(retry)
+            # Prefer Mermaid flowchart; accept caption only when primary was non-caption junk.
+            if retry and retry_kind == "flowchart":
+                text, kind = retry, retry_kind
+                used_fallback = True
+            elif retry and retry_kind == "caption" and kind in {"structured", "text"}:
+                # Keep primary structured text rather than losing pathway content to caption,
+                # unless primary was empty-ish.
+                if len(text.strip()) < 40:
+                    text, kind = retry, retry_kind
+                    used_fallback = True
         if not text:
             kind = "caption"
             text = f"**Image Caption:** Figure `{image_path.name}` (empty model output)"
+        if used_fallback:
+            logger.info("Figure %s used fallback prompt -> kind=%s", relative, kind)
         return FigureResult(relative_path=relative, kind=kind, text=text)
     except Exception as exc:
         logger.exception("Figure enrichment failed for %s", relative)
@@ -169,7 +292,6 @@ def convert_one_figure(
             text=fallback,
             error=str(exc),
         )
-
 
 def _match_figure(target: str, results: list[FigureResult]) -> FigureResult | None:
     normalized = target.strip().replace("\\", "/")
@@ -229,6 +351,7 @@ def enrich_job_figures(
     vllm_url: str,
     vllm_model: str,
     prompt: str = DEFAULT_FIGURE_PROMPT,
+    fallback_prompt: str | None = MERMAID_CLINICAL_PROMPT,
     timeout: int = 300,
     max_tokens: int = 4096,
     max_images: int = 64,
@@ -241,6 +364,7 @@ def enrich_job_figures(
         "image_count": len(images),
         "converted": [],
         "errors": 0,
+        "fallback_enabled": bool(fallback_prompt and fallback_prompt.strip()),
     }
     if not images:
         summary["skipped_reason"] = "no_layout_images"
@@ -269,6 +393,7 @@ def enrich_job_figures(
                 image_path,
                 caller=caller,
                 prompt=prompt,
+                fallback_prompt=fallback_prompt,
             )
             for image_path in images
         ]

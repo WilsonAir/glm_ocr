@@ -5,8 +5,7 @@
 
 service:
   host: 127.0.0.1
-  # 18091=v2, 18092=task_queue, 18093=paddle-ocr；figure-enrichment 使用 18094。
-  port: 18094
+  port: 18092
   sdk_config: code/glm_ocr/config/glm_ocr.yaml
   layout_device: cuda:1
   output_root: result/glm_ocr/framework_v3
@@ -36,14 +35,25 @@ vllm:
   max_model_len: 8192
 
 # Layout 完成后，对 imgs/ 中的 chart/image 裁剪再调一次 VL。
+# 内置 profile：
+#   - default: 通用图转文本，流程图优先 Mermaid，其余表/caption
+#   - mermaid_clinical: 临床 flowchart 专用（subgraph / LR / 脚注全量转录）
+# 默认先用 default；若结果不是 Mermaid（落到 structured/markdown），再用
+# mermaid_clinical 重试一次。
 figure_enrichment:
   enabled: true
   max_images: 64
   max_workers: 2
   timeout: 300
   max_tokens: 4096
-  # prompt 留空则使用内置默认（流程图→Mermaid，不可文本化→Image Caption）。
+  prompt_profile: default
+  fallback_prompt_profile: mermaid_clinical
+  # 若要全程只用临床 Mermaid prompt，可改为：
+  #   prompt_profile: mermaid_clinical
+  #   fallback_prompt_profile: none
+  # 也可写死自定义 prompt / fallback_prompt 覆盖 profile。
   # prompt: |
+  # fallback_prompt: |
 
 # /parse_oss 的 OSS 凭据仅从仓库根目录 .env（gitignore）注入，不要写在本 YAML
 # 或可提交的 deploy/glm-ocr-v3/config.env 中。所需环境变量：
