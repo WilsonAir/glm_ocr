@@ -359,7 +359,8 @@ def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
                 max_tokens=_figure_max_tokens,
                 max_images=_figure_max_images,
                 max_workers=_figure_max_workers,
-            )        metadata = _update_metadata(
+            )
+        metadata = _update_metadata(
             job_dir,
             status="completed",
             chars=len(markdown),
