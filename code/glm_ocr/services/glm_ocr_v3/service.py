@@ -79,14 +79,17 @@ _vllm_timeout = 300
 _vllm_max_tokens = 4096
 
 _figure_enrichment_enabled = True
-_figure_prompt = DEFAULT_FIGURE_PROMPT
-_figure_fallback_prompt: str | None = MERMAID_CLINICAL_PROMPT
-_figure_prompt_profile = "default"
-_figure_fallback_profile = "mermaid_clinical"
+_figure_prompt = MERMAID_CLINICAL_PROMPT
+_figure_fallback_prompt: str | None = None
+_figure_prompt_profile = "mermaid_clinical"
+_figure_fallback_profile = "none"
 _figure_max_images = 64
 _figure_max_workers = 2
-_figure_timeout = 300
-_figure_max_tokens = 4096
+_figure_timeout = 600
+_figure_max_tokens = 8192
+# Flowchart → Mermaid uses a dedicated VL (Qwen); layout/OCR stays on glm-ocr.
+_figure_vllm_url = "http://172.19.64.72/vllm-qwen38/v1/chat/completions"
+_figure_vllm_model = "qwen3.5-9b"
 _oss_endpoint = ""
 _oss_access_key_id = ""
 _oss_access_key_secret = ""
@@ -351,8 +354,8 @@ def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
             markdown, figure_summary = enrich_job_figures(
                 job_dir,
                 markdown,
-                vllm_url=_vllm_url,
-                vllm_model=_vllm_model,
+                vllm_url=_figure_vllm_url,
+                vllm_model=_figure_vllm_model,
                 prompt=_figure_prompt,
                 fallback_prompt=_figure_fallback_prompt,
                 timeout=_figure_timeout,
@@ -730,6 +733,8 @@ async def health() -> dict[str, Any]:
             "prompt_profile": _figure_prompt_profile,
             "fallback_prompt_profile": _figure_fallback_profile,
             "available_profiles": sorted(FIGURE_PROMPT_PROFILES),
+            "vllm_url": _figure_vllm_url,
+            "vllm_model": _figure_vllm_model,
         },
         "queues": {
             "pdf_layout": _queue_snapshot(
@@ -991,6 +996,7 @@ def main() -> None:
     global _figure_enrichment_enabled, _figure_prompt, _figure_fallback_prompt
     global _figure_prompt_profile, _figure_fallback_profile, _figure_max_images
     global _figure_max_workers, _figure_timeout, _figure_max_tokens
+    global _figure_vllm_url, _figure_vllm_model
     global _oss_endpoint, _oss_access_key_id, _oss_access_key_secret
     global _oss_bucket_name, _oss_prefix, _oss_signed_url_expires
     service_config_path = Path(args.service_config).expanduser().resolve()
@@ -1007,6 +1013,14 @@ def main() -> None:
         if not path.is_absolute():
             path = REPOSITORY_ROOT / path
         return path.expanduser().resolve()
+
+    def normalize_chat_completions_url(url: str) -> str:
+        cleaned = url.strip().rstrip("/")
+        if cleaned.endswith("/chat/completions"):
+            return cleaned
+        if cleaned.endswith("/v1"):
+            return f"{cleaned}/chat/completions"
+        return cleaned
 
     host = args.host or str(service.get("host", "127.0.0.1"))
     port = args.port or int(service.get("port", DEFAULT_PORT))
@@ -1037,9 +1051,11 @@ def main() -> None:
     _vllm_max_tokens = int(vllm.get("max_tokens", 4096))
 
     _figure_enrichment_enabled = bool(figure_cfg.get("enabled", True))
-    _figure_prompt_profile = str(figure_cfg.get("prompt_profile", "default")).strip().lower()
+    _figure_prompt_profile = str(
+        figure_cfg.get("prompt_profile", "mermaid_clinical")
+    ).strip().lower()
     _figure_fallback_profile = str(
-        figure_cfg.get("fallback_prompt_profile", "mermaid_clinical")
+        figure_cfg.get("fallback_prompt_profile", "none")
     ).strip().lower()
     # Custom prompt text overrides profile when non-empty.
     prompt_value = figure_cfg.get("prompt")
@@ -1055,7 +1071,7 @@ def main() -> None:
         _figure_fallback_prompt = str(fallback_value).strip()
     else:
         _figure_fallback_prompt = resolve_figure_prompt(profile=_figure_fallback_profile)
-    # Avoid duplicate VL call when primary already is the clinical profile.
+    # Avoid duplicate VL call when primary already matches fallback.
     if (
         _figure_fallback_prompt
         and _figure_fallback_prompt.strip() == _figure_prompt.strip()
@@ -1064,8 +1080,17 @@ def main() -> None:
         _figure_fallback_profile = "none"
     _figure_max_images = int(figure_cfg.get("max_images", 64))
     _figure_max_workers = int(figure_cfg.get("max_workers", 2))
-    _figure_timeout = int(figure_cfg.get("timeout", _vllm_timeout))
-    _figure_max_tokens = int(figure_cfg.get("max_tokens", _vllm_max_tokens))
+    _figure_timeout = int(figure_cfg.get("timeout", 600))
+    _figure_max_tokens = int(figure_cfg.get("max_tokens", 8192))
+    _figure_vllm_url = normalize_chat_completions_url(
+        str(
+            figure_cfg.get(
+                "vllm_url",
+                "http://172.19.64.72/vllm-qwen38/v1/chat/completions",
+            )
+        )
+    )
+    _figure_vllm_model = str(figure_cfg.get("vllm_model", "qwen3.5-9b"))
 
     _oss_endpoint = os.environ.get("OSS_ENDPOINT", "")
     _oss_access_key_id = os.environ.get("OSS_ACCESS_KEY_ID", "")
@@ -1090,13 +1115,15 @@ def main() -> None:
 
     logger.info(
         "Starting GLM-OCR v3 on %s:%d (output=%s, figure_enrichment=%s, "
-        "prompt_profile=%s, fallback_profile=%s)",
+        "prompt_profile=%s, fallback_profile=%s, figure_vl=%s/%s)",
         host,
         port,
         _output_root,
         _figure_enrichment_enabled,
         _figure_prompt_profile,
         _figure_fallback_profile,
+        _figure_vllm_model,
+        _figure_vllm_url,
     )
     uvicorn.run(app, host=host, port=port, log_level="info")
 

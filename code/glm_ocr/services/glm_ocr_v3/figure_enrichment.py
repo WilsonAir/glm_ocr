@@ -186,15 +186,39 @@ def detect_figure_kind(text: str) -> str:
 
 
 def normalize_mermaid_output(text: str) -> str:
-    """Ensure pathway-like Mermaid bodies are wrapped in ```mermaid fences."""
+    """Prefer a clean ```mermaid fence; strip CoT if the model rambling first."""
     stripped = text.strip()
     if not stripped:
         return text
     lower = stripped.lower()
+
+    # Prefer the longest fenced mermaid block (Qwen often thinks then answers).
+    blocks = re.findall(r"```mermaid\s*\n([\s\S]*?)```", stripped, flags=re.IGNORECASE)
+    if blocks:
+        body = max(blocks, key=len).strip()
+        return f"```mermaid\n{body}\n```"
+
     if "```mermaid" in lower:
         return stripped
     if re.match(r"(?is)^(flowchart|graph)\s+(td|lr|tb|rl)\b", stripped):
         return f"```mermaid\n{stripped}\n```"
+
+    # Caption short-circuit.
+    if lower.startswith("**image caption:**") or lower.startswith("image caption:"):
+        return stripped
+
+    # Last resort: find unfenced flowchart after reasoning text.
+    match = re.search(
+        r"(?is)((?:flowchart|graph)\s+(?:td|lr|tb|rl)\b[\s\S]+)$",
+        stripped,
+    )
+    if match and "-->" in match.group(1):
+        body = match.group(1).strip()
+        # Cut trailing prose after the diagram if present.
+        fence_end = re.search(r"\n```", body)
+        if fence_end:
+            body = body[: fence_end.start()].strip()
+        return f"```mermaid\n{body}\n```"
     return stripped
 
 

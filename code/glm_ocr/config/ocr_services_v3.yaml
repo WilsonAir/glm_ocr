@@ -34,23 +34,21 @@ vllm:
   gpu_memory_utilization: 0.6
   max_model_len: 8192
 
-# Layout 完成后，对 imgs/ 中的 chart/image 裁剪再调一次 VL。
-# 内置 profile：
-#   - default: 通用图转文本，流程图优先 Mermaid，其余表/caption
-#   - mermaid_clinical: 临床 flowchart 专用（subgraph / LR / 脚注全量转录）
-# 默认先用 default；若结果不是 Mermaid（落到 structured/markdown），再用
-# mermaid_clinical 重试一次。
+# Layout 完成后，对 imgs/ 中的 chart/image 裁剪再调一次 VL，生成 Mermaid。
+# 流程图专用模型：Qwen3.5-9B（与正文 OCR 的 glm-ocr 分离）。
+# prompt 默认 mermaid_clinical（临床 flowchart → Mermaid）。
 figure_enrichment:
   enabled: true
   max_images: 64
   max_workers: 2
-  timeout: 300
-  max_tokens: 4096
-  prompt_profile: default
-  fallback_prompt_profile: mermaid_clinical
-  # 若要全程只用临床 Mermaid prompt，可改为：
-  #   prompt_profile: mermaid_clinical
-  #   fallback_prompt_profile: none
+  timeout: 600
+  max_tokens: 8192
+  prompt_profile: mermaid_clinical
+  fallback_prompt_profile: none
+  # OpenAI-compatible chat completions endpoint for flowchart → Mermaid.
+  # Accepts either .../v1 or .../v1/chat/completions.
+  vllm_url: http://172.19.64.72/vllm-qwen38/v1
+  vllm_model: qwen3.5-9b
   # 也可写死自定义 prompt / fallback_prompt 覆盖 profile。
   # prompt: |
   # fallback_prompt: |

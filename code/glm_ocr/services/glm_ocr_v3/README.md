@@ -129,35 +129,23 @@ result/glm_ocr/framework_v3/<uuid>/
 
 ## VL 转换策略
 
+Layout 裁剪出的 `imgs/` 默认交给 **Qwen3.5-9B**（`figure_enrichment.vllm_*`），
+用 `mermaid_clinical` prompt 生成 Mermaid flowchart。正文 OCR / Layout 仍使用
+**glm-ocr**（`vllm.*`）。
+
 | 区域类型 | 输出形式 |
 |---|---|
-| 流程图 / 决策树 / 临床 pathway / 框线箭头图 | **优先** ` ```mermaid ` flowchart |
-| 层级 / 架构示意图 | 优先 Mermaid，必要时嵌套列表 |
-| 可读数值的图表 | Markdown 表格 + 一句摘要 |
-| 真表格（单元格网格，非 pathway） | Markdown / HTML 表格 |
-| 照片 / Logo / 无法结构化 | `**Image Caption:** ...` |
-
-内置 prompt profile：
-
-| profile | 说明 |
-|---|---|
-| `default` | 通用图转文本，流程图优先 Mermaid |
-| `mermaid_clinical` | 临床 flowchart 专用（subgraph / LR / 脚注全量转录） |
+| 流程图 / 决策树 / 临床 pathway / 框线箭头图 | ` ```mermaid ` flowchart（优先 LR + subgraph） |
+| 非流程图 | `**Image Caption:** ...`（由同一 clinical prompt 兜底） |
 
 配置示例（`ocr_services_v3.yaml`）：
 
 ```yaml
 figure_enrichment:
-  prompt_profile: default
-  fallback_prompt_profile: mermaid_clinical   # 非 Mermaid 时自动重试；none 关闭
-```
-
-全程只用临床 Mermaid prompt：
-
-```yaml
-figure_enrichment:
   prompt_profile: mermaid_clinical
   fallback_prompt_profile: none
+  vllm_url: http://172.19.64.72/vllm-qwen38/v1
+  vllm_model: qwen3.5-9b
 ```
 
 ## 启动与管理
@@ -186,12 +174,14 @@ code/glm_ocr/logs/glm_ocr_v3_service.log
 | `service.port` | `18094` | 服务端口 |
 | `service.output_root` | `result/glm_ocr/framework_v3` | UUID 输出根目录 |
 | `figure_enrichment.enabled` | `true` | 全局开关 |
-| `figure_enrichment.prompt_profile` | `default` | 主 prompt：`default` / `mermaid_clinical` |
-| `figure_enrichment.fallback_prompt_profile` | `mermaid_clinical` | 备选；`none` 关闭重试 |
+| `figure_enrichment.vllm_url` | Qwen gateway `/v1` | flowchart→Mermaid 专用 VL |
+| `figure_enrichment.vllm_model` | `qwen3.5-9b` | flowchart VL 模型名 |
+| `figure_enrichment.prompt_profile` | `mermaid_clinical` | 主 prompt |
+| `figure_enrichment.fallback_prompt_profile` | `none` | 备选；`none` 关闭重试 |
 | `figure_enrichment.max_images` | `64` | 单任务最多转换图数 |
 | `figure_enrichment.max_workers` | `2` | 单任务内并行 VL 请求数 |
-| `figure_enrichment.timeout` | `300` | 单图 VL 超时（秒） |
-| `figure_enrichment.max_tokens` | `4096` | 单图生成上限 |
+| `figure_enrichment.timeout` | `600` | 单图 VL 超时（秒） |
+| `figure_enrichment.max_tokens` | `8192` | 单图生成上限 |
 | `figure_enrichment.prompt` | （空） | 非空时覆盖 `prompt_profile` |
 | `figure_enrichment.fallback_prompt` | （空） | 非空时覆盖 `fallback_prompt_profile` |
 其余队列 / vLLM / Layout 配置与 v2 含义相同。
