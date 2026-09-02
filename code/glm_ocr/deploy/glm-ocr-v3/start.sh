@@ -153,6 +153,11 @@ cmd=(
   "$GLM_OCR_V3_PYTHON"
   "${PROJECT_ROOT}/services/glm_ocr_v3/service.py"
   --service-config "$GLM_OCR_V3_SERVICE_CONFIG"
+  --host "$GLM_OCR_V3_HOST"
+  --port "$GLM_OCR_V3_PORT"
+  --config "$GLM_OCR_V3_CONFIG"
+  --layout-device "$GLM_OCR_V3_LAYOUT_DEVICE"
+  --output-root "$GLM_OCR_V3_OUTPUT_ROOT"
 )
 
 if [[ "${1:-}" == "--foreground" ]]; then

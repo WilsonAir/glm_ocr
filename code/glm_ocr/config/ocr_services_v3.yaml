@@ -5,7 +5,7 @@
 
 service:
   host: 127.0.0.1
-  port: 18092
+  port: 18094
   sdk_config: code/glm_ocr/config/glm_ocr.yaml
   layout_device: cuda:1
   output_root: result/glm_ocr/framework_v3
