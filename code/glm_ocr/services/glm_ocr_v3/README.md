@@ -144,7 +144,7 @@ Layout 裁剪出的 `imgs/` 默认交给 **Qwen3.5-9B**（`figure_enrichment.vll
 figure_enrichment:
   prompt_profile: mermaid_clinical
   fallback_prompt_profile: none
-  vllm_url: http://172.19.64.72/vllm-qwen38/v1
+  vllm_url: http://127.0.0.1:18003/v1
   vllm_model: qwen3.5-9b
 ```
 
@@ -174,7 +174,7 @@ code/glm_ocr/logs/glm_ocr_v3_service.log
 | `service.port` | `18094` | 服务端口 |
 | `service.output_root` | `result/glm_ocr/framework_v3` | UUID 输出根目录 |
 | `figure_enrichment.enabled` | `true` | 全局开关 |
-| `figure_enrichment.vllm_url` | Qwen gateway `/v1` | flowchart→Mermaid 专用 VL |
+| `figure_enrichment.vllm_url` | `http://127.0.0.1:18003/v1` | flowchart→Mermaid 专用 VL（本机 Qwen） |
 | `figure_enrichment.vllm_model` | `qwen3.5-9b` | flowchart VL 模型名 |
 | `figure_enrichment.prompt_profile` | `mermaid_clinical` | 主 prompt |
 | `figure_enrichment.fallback_prompt_profile` | `none` | 备选；`none` 关闭重试 |

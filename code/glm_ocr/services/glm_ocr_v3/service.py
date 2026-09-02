@@ -88,7 +88,7 @@ _figure_max_workers = 2
 _figure_timeout = 600
 _figure_max_tokens = 8192
 # Flowchart → Mermaid uses a dedicated VL (Qwen); layout/OCR stays on glm-ocr.
-_figure_vllm_url = "http://172.19.64.72/vllm-qwen38/v1/chat/completions"
+_figure_vllm_url = "http://127.0.0.1:18003/v1/chat/completions"
 _figure_vllm_model = "qwen3.5-9b"
 _oss_endpoint = ""
 _oss_access_key_id = ""
@@ -1086,7 +1086,7 @@ def main() -> None:
         str(
             figure_cfg.get(
                 "vllm_url",
-                "http://172.19.64.72/vllm-qwen38/v1/chat/completions",
+                "http://127.0.0.1:18003/v1/chat/completions",
             )
         )
     )

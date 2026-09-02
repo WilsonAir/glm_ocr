@@ -45,9 +45,15 @@ figure_enrichment:
   max_tokens: 8192
   prompt_profile: mermaid_clinical
   fallback_prompt_profile: none
-  # OpenAI-compatible chat completions endpoint for flowchart → Mermaid.
+  # 本机 Qwen3.5-9B vLLM（flowchart → Mermaid），与 glm-ocr :18080 分离。
+  # 示例启动：
+  #   vllm serve /data/wilson_2/de/models/Qwen/Qwen3.5-9B \
+  #     --served-model-name qwen3.5-9b --dtype bfloat16 \
+  #     --gpu-memory-utilization 0.90 --max-model-len 128000 \
+  #     --max-num-seqs 4 --max-num-batched-tokens 128000 \
+  #     --trust-remote-code --port 18003
   # Accepts either .../v1 or .../v1/chat/completions.
-  vllm_url: http://172.19.64.72/vllm-qwen38/v1
+  vllm_url: http://127.0.0.1:18003/v1
   vllm_model: qwen3.5-9b
   # 也可写死自定义 prompt / fallback_prompt 覆盖 profile。
   # prompt: |
