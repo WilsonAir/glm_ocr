@@ -7,7 +7,7 @@ GLM-OCR v3 在 [v2](../glm_ocr_v2/README.md) 队列与解析能力之上，增�
 - 无法可靠转成结构化文本的内容 → **Image Caption**；
 - 转换结果写回 Markdown，并单独落盘到 `figure_texts/`。
 
-提供给外部调用方的精简说明见 [API_USAGE.md](API_USAGE.md)。
+提供给外部调用方的接口说明见 [API_USAGE.md](API_USAGE.md)（含网关地址与 curl / Python 示例）。
 
 ## 服务地址
 
