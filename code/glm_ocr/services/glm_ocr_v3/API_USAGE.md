@@ -26,10 +26,16 @@
 | 版面检测 | PP-DocLayoutV3 |
 | 正文 / 区域 OCR | `glm-ocr`（vLLM `:18080`） |
 | 流程图 → Mermaid | `qwen3.5-9b`（vLLM `:18003`） |
-| Prompt | `mermaid_clinical`（临床 flowchart 专用） |
+| 标题 / 段落翻译 | `llm`（Qwen）或 `google`（Cloud Translation v2，Key 请求时传入） |
 
-默认 `enrich_figures=true`：Layout 裁出的 `imgs/` 会再调 Qwen，生成 Mermaid；
-非流程图则输出 `**Image Caption:** ...`。
+开关：
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `enrich_figures` | `true` | Layout 裁出的 `imgs/` 再调 Qwen → Mermaid / Caption |
+| `translate` | `false` | 对段落标题与段落做中文翻译；**不译** Mermaid / 代码块 |
+| `translate_provider` | `llm` | `llm` 或 `google` |
+| `google_api_key` | — | Form/JSON 字段；`provider=google` 时必填，**不落盘** |
 
 ---
 
@@ -64,6 +70,14 @@ curl -s '{BASE_URL}/health' | python -m json.tool
     "prompt_profile": "mermaid_clinical",
     "vllm_model": "qwen3.5-9b",
     "vllm_url": "http://127.0.0.1:18003/v1/chat/completions"
+  },
+  "translation": {
+    "enabled": true,
+    "default_request": false,
+    "default_provider": "llm",
+    "providers": ["llm", "google"],
+    "target_language": "Simplified Chinese",
+    "vllm_model": "qwen3.5-9b"
   }
 }
 ```
@@ -96,6 +110,9 @@ Content-Type: multipart/form-data
 | `file` | Form | 是 | — | PDF 或图片 |
 | `image_mode` | Query | 否 | `auto` | `auto` / `layout` / `model_only` |
 | `enrich_figures` | Query | 否 | `true` | 是否对 `imgs/` 做 Qwen→Mermaid |
+| `translate` | Query | 否 | `false` | 是否翻译段落标题 / 段落 |
+| `translate_provider` | Query | 否 | `llm` | `llm`（Qwen）或 `google` |
+| `google_api_key` | Form | 条件 | — | `translate_provider=google` 时必填 |
 
 `image_mode`：
 
@@ -103,17 +120,37 @@ Content-Type: multipart/form-data
 |---|---|
 | `auto` | 图片默认 Layout |
 | `layout` | 强制 Layout |
-| `model_only` | 图片直送 glm-ocr，不做 Layout，也不做 Mermaid |
+| `model_only` | 图片直送 glm-ocr，不做 Layout，也不做 Mermaid / 翻译 |
 
 PDF 不能使用 `model_only`。
 
-### 解析 PDF（默认开 Mermaid）
+### 解析 PDF（默认开 Mermaid，关翻译）
 
 ```bash
 curl -X POST \
   '{BASE_URL}/parse?enrich_figures=true' \
   -F 'file=@/path/to/document.pdf'
 ```
+
+### 用 Qwen 翻译正文
+
+```bash
+curl -X POST \
+  '{BASE_URL}/parse?enrich_figures=true&translate=true&translate_provider=llm' \
+  -F 'file=@/path/to/document.pdf'
+```
+
+### 用 Google 翻译（Key 即时传入）
+
+```bash
+curl -X POST \
+  '{BASE_URL}/parse?enrich_figures=true&translate=true&translate_provider=google' \
+  -F 'file=@/path/to/document.pdf' \
+  -F 'google_api_key=YOUR_GOOGLE_API_KEY'
+```
+
+官方接口为 Cloud Translation **Basic v2**（`translation.googleapis.com/language/translate/v2`），
+目标语言默认 `zh-CN`。Key 只在内存中使用，**不会写入** `job.json`。
 
 ### 解析整页图片
 
@@ -229,9 +266,14 @@ curl -X POST '{BASE_URL}/parse_oss' \
     "oss_path": "docs/medical/report.pdf",
     "image_mode": "auto",
     "enrich_figures": true,
+    "translate": false,
+    "translate_provider": "llm",
+    "google_api_key": null,
     "attempt": 1
   }'
 ```
+
+`translate_provider=google` 时在 JSON 里带上 `google_api_key`（同样不落盘）。
 
 返回 HTTP `202` 后，用 `GET /results/{job_id}` 轮询。OSS 凭据由服务端环境注入，调用方不传密钥。
 
@@ -249,8 +291,13 @@ PDF = Path("/path/to/document.pdf")
 with PDF.open("rb") as f:
     r = requests.post(
         f"{BASE_URL}/parse",
-        params={"enrich_figures": "true"},
+        params={
+            "enrich_figures": "true",
+            "translate": "true",
+            "translate_provider": "google",
+        },
         files={"file": (PDF.name, f, "application/pdf")},
+        data={"google_api_key": "YOUR_GOOGLE_API_KEY"},
         timeout=3600,
     )
 r.raise_for_status()
@@ -276,6 +323,7 @@ Path("result.md").write_text(data["text"], encoding="utf-8")
 ## 8. 调用建议
 
 1. 整页病例 / 指南 PDF：`enrich_figures=true`（默认）。  
-2. 已裁好的小图：`image_mode=model_only`。  
-3. 大 PDF 可能数分钟；客户端超时建议 ≥ 30–60 分钟。  
-4. 需要原流程图裁剪时下载 `imgs/`；需要可编辑图时看 `figure_texts/` 或 `text` 里的 Mermaid。
+2. 需要中文正文：`translate=true`；默认 `translate_provider=llm`，或 `google` + Form/`google_api_key`。  
+3. 已裁好的小图：`image_mode=model_only`。  
+4. 大 PDF 可能数分钟；开翻译会再增加调用时间，客户端超时建议 ≥ 30–60 分钟。  
+5. 需要原流程图裁剪时下载 `imgs/`；需要可编辑图时看 `figure_texts/` 或 `text` 里的 Mermaid；译文另见 `translations/`。

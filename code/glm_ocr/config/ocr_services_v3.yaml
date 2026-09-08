@@ -59,6 +59,22 @@ figure_enrichment:
   # prompt: |
   # fallback_prompt: |
 
+# Layout 完成后，对段落标题 / 段落翻译（Mermaid/代码块不译）。
+# 请求参数 translate 默认 false；translate_provider 默认 llm（Qwen）。
+# provider=google 时须在请求中即时传入 google_api_key（不落盘）。
+translation:
+  enabled: true
+  default_provider: llm
+  target_language: Simplified Chinese
+  source_language: en
+  max_workers: 2
+  timeout: 300
+  max_tokens: 4096
+  max_segments: 500
+  google_batch_size: 40
+  # 可选：覆盖默认医学翻译 prompt（需含 <<TARGET_LANGUAGE>> 占位符；仅 llm 用）。
+  # prompt: |
+
 # /parse_oss 的 OSS 凭据仅从仓库根目录 .env（gitignore）注入，不要写在本 YAML
 # 或可提交的 deploy/glm-ocr-v3/config.env 中。所需环境变量：
 #   OSS_ENDPOINT / OSS_ACCESS_KEY_ID / OSS_ACCESS_KEY_SECRET / OSS_BUCKET_NAME

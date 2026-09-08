@@ -23,7 +23,7 @@ from zoneinfo import ZoneInfo
 
 import requests
 import yaml
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
@@ -34,6 +34,7 @@ from figure_enrichment import (
     enrich_job_figures,
     resolve_figure_prompt,
 )
+from text_translation import DEFAULT_TRANSLATE_PROMPT, translate_job_markdown
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -90,6 +91,16 @@ _figure_max_tokens = 8192
 # Flowchart → Mermaid uses a dedicated VL (Qwen); layout/OCR stays on glm-ocr.
 _figure_vllm_url = "http://127.0.0.1:18003/v1/chat/completions"
 _figure_vllm_model = "qwen3.5-9b"
+_translation_enabled = True
+_translation_default_provider: Literal["llm", "google"] = "llm"
+_translation_target_language = "Simplified Chinese"
+_translation_source_language = "en"
+_translation_prompt = DEFAULT_TRANSLATE_PROMPT
+_translation_max_workers = 2
+_translation_timeout = 300
+_translation_max_tokens = 4096
+_translation_max_segments = 500
+_translation_google_batch_size = 40
 _oss_endpoint = ""
 _oss_access_key_id = ""
 _oss_access_key_secret = ""
@@ -119,6 +130,9 @@ class QueueJob:
     attempt: int = 1
     image_mode: Literal["auto", "layout", "model_only"] = "auto"
     enrich_figures: bool = True
+    translate: bool = False
+    translate_provider: Literal["llm", "google"] = "llm"
+    google_api_key: str | None = None
     future: asyncio.Future[dict[str, Any]] | None = None
 
 
@@ -336,6 +350,38 @@ def _should_enrich_figures(job: QueueJob) -> bool:
     return bool(_figure_enrichment_enabled and job.enrich_figures and job.mode == "layout")
 
 
+def _should_translate(job: QueueJob) -> bool:
+    return bool(_translation_enabled and job.translate and job.mode == "layout")
+
+
+def _normalize_translate_provider(
+    provider: str | None,
+) -> Literal["llm", "google"]:
+    key = (provider or _translation_default_provider or "llm").strip().lower()
+    if key not in {"llm", "google"}:
+        raise HTTPException(
+            status_code=400,
+            detail="translate_provider must be 'llm' or 'google'",
+        )
+    return key  # type: ignore[return-value]
+
+
+def _validate_translate_options(
+    *,
+    translate: bool,
+    mode: Literal["layout", "model_only"],
+    translate_provider: Literal["llm", "google"],
+    google_api_key: str | None,
+) -> None:
+    if not translate or mode != "layout":
+        return
+    if translate_provider == "google" and not (google_api_key and google_api_key.strip()):
+        raise HTTPException(
+            status_code=400,
+            detail="google_api_key is required when translate_provider=google",
+        )
+
+
 def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
     """Run layout OCR, then optionally convert imgs/ crops via VL prompts."""
     if job.data is None:
@@ -363,6 +409,31 @@ def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
                 max_images=_figure_max_images,
                 max_workers=_figure_max_workers,
             )
+        translation_summary: dict[str, Any] | None = None
+        if _should_translate(job):
+            _update_metadata(
+                job_dir,
+                status="translating",
+                translate_provider=job.translate_provider,
+            )
+            markdown, translation_summary = translate_job_markdown(
+                job_dir,
+                markdown,
+                provider=job.translate_provider,
+                vllm_url=_figure_vllm_url,
+                vllm_model=_figure_vllm_model,
+                google_api_key=job.google_api_key,
+                target_language=_translation_target_language,
+                source_language=_translation_source_language,
+                prompt_template=_translation_prompt,
+                timeout=_translation_timeout,
+                max_tokens=_translation_max_tokens,
+                max_workers=_translation_max_workers,
+                max_segments=_translation_max_segments,
+                google_batch_size=_translation_google_batch_size,
+            )
+            # Drop key from memory after use.
+            job.google_api_key = None
         metadata = _update_metadata(
             job_dir,
             status="completed",
@@ -371,9 +442,15 @@ def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
             finished_at=_beijing_now(),
             enrich_figures=_should_enrich_figures(job),
             figure_enrichment=figure_summary,
+            translate=_should_translate(job),
+            translate_provider=(
+                job.translate_provider if _should_translate(job) else None
+            ),
+            translation=translation_summary,
         )
         return _complete_response(job_dir, metadata, markdown)
     except Exception as exc:
+        job.google_api_key = None
         _update_metadata(
             job_dir,
             status="failed",
@@ -596,6 +673,9 @@ async def _enqueue(
     image_mode: Literal["auto", "layout", "model_only"],
     images_only: bool,
     enrich_figures: bool,
+    translate: bool,
+    translate_provider: Literal["llm", "google"],
+    google_api_key: str | None,
 ) -> JSONResponse:
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename")
@@ -619,6 +699,14 @@ async def _enqueue(
     mode: Literal["layout", "model_only"] = (
         "model_only" if content_type == "image" and image_mode == "model_only"
         else "layout"
+    )
+    provider = _normalize_translate_provider(translate_provider)
+    do_translate = bool(translate) if mode == "layout" else False
+    _validate_translate_options(
+        translate=do_translate,
+        mode=mode,
+        translate_provider=provider,
+        google_api_key=google_api_key,
     )
     if mode == "model_only":
         queue = _model_queue
@@ -645,6 +733,7 @@ async def _enqueue(
     job_dir = _safe_job_dir(job_id)
     job_dir.mkdir(parents=True, exist_ok=False)
     created = _beijing_now()
+    # Never persist google_api_key to disk.
     _write_metadata(job_dir, {
         "job_id": job_id,
         "status": "queued",
@@ -653,6 +742,8 @@ async def _enqueue(
         "content_type": content_type,
         "image_mode": image_mode,
         "enrich_figures": enrich_figures if mode == "layout" else False,
+        "translate": do_translate,
+        "translate_provider": provider if do_translate else None,
         "created_at": created,
         "output_dir": str(job_dir),
     })
@@ -665,6 +756,9 @@ async def _enqueue(
         queue_name=queue_name,
         data=data,
         enrich_figures=enrich_figures if mode == "layout" else False,
+        translate=do_translate,
+        translate_provider=provider,
+        google_api_key=google_api_key if do_translate and provider == "google" else None,
         future=future,
     )
     try:
@@ -736,6 +830,19 @@ async def health() -> dict[str, Any]:
             "vllm_url": _figure_vllm_url,
             "vllm_model": _figure_vllm_model,
         },
+        "translation": {
+            "enabled": _translation_enabled,
+            "default_request": False,
+            "default_provider": _translation_default_provider,
+            "providers": ["llm", "google"],
+            "target_language": _translation_target_language,
+            "source_language": _translation_source_language,
+            "max_workers": _translation_max_workers,
+            "max_segments": _translation_max_segments,
+            "vllm_url": _figure_vllm_url,
+            "vllm_model": _figure_vllm_model,
+            "google_api": "Cloud Translation Basic v2 (key passed per request)",
+        },
         "queues": {
             "pdf_layout": _queue_snapshot(
                 _pdf_queue,
@@ -800,7 +907,19 @@ async def parse_document(
     image_mode: Literal["auto", "layout", "model_only"] = Query("auto"),
     enrich_figures: bool = Query(
         True,
-        description="For layout jobs, convert imgs/ crops to text/caption via VL",
+        description="For layout jobs, convert imgs/ crops to Mermaid/caption via VL (default on)",
+    ),
+    translate: bool = Query(
+        False,
+        description="For layout jobs, translate headings/paragraphs (default off)",
+    ),
+    translate_provider: Literal["llm", "google"] = Query(
+        "llm",
+        description="Translation backend: llm (Qwen) or google (Cloud Translation v2)",
+    ),
+    google_api_key: str | None = Form(
+        None,
+        description="Google Cloud Translation API key; required when translate_provider=google",
     ),
 ) -> JSONResponse:
     return await _enqueue(
@@ -808,6 +927,9 @@ async def parse_document(
         image_mode=image_mode,
         images_only=False,
         enrich_figures=enrich_figures,
+        translate=translate,
+        translate_provider=translate_provider,
+        google_api_key=google_api_key,
     )
 
 
@@ -817,7 +939,19 @@ async def parse_image(
     image_mode: Literal["auto", "layout", "model_only"] = Query("auto"),
     enrich_figures: bool = Query(
         True,
-        description="For layout jobs, convert imgs/ crops to text/caption via VL",
+        description="For layout jobs, convert imgs/ crops to Mermaid/caption via VL (default on)",
+    ),
+    translate: bool = Query(
+        False,
+        description="For layout jobs, translate headings/paragraphs (default off)",
+    ),
+    translate_provider: Literal["llm", "google"] = Query(
+        "llm",
+        description="Translation backend: llm (Qwen) or google (Cloud Translation v2)",
+    ),
+    google_api_key: str | None = Form(
+        None,
+        description="Google Cloud Translation API key; required when translate_provider=google",
     ),
 ) -> JSONResponse:
     return await _enqueue(
@@ -825,6 +959,9 @@ async def parse_image(
         image_mode=image_mode,
         images_only=True,
         enrich_figures=enrich_figures,
+        translate=translate,
+        translate_provider=translate_provider,
+        google_api_key=google_api_key,
     )
 
 
@@ -853,6 +990,9 @@ class OssTaskRequest(BaseModel):
     oss_path: str
     image_mode: Literal["auto", "layout", "model_only"] = "auto"
     enrich_figures: bool = True
+    translate: bool = False
+    translate_provider: Literal["llm", "google"] = "llm"
+    google_api_key: str | None = None
     attempt: int = Field(default=1, ge=1)
 
 
@@ -879,6 +1019,14 @@ async def parse_oss_task(req: OssTaskRequest) -> JSONResponse:
         else "layout"
     )
     enrich_figures = req.enrich_figures if mode == "layout" else False
+    translate = req.translate if mode == "layout" else False
+    provider = _normalize_translate_provider(req.translate_provider)
+    _validate_translate_options(
+        translate=translate,
+        mode=mode,
+        translate_provider=provider,
+        google_api_key=req.google_api_key,
+    )
     if mode == "model_only":
         queue = _model_queue
         queue_name = "model_only"
@@ -894,6 +1042,7 @@ async def parse_oss_task(req: OssTaskRequest) -> JSONResponse:
     filename = Path(req.oss_path).name or "input.bin"
     created = _beijing_now()
     job_dir.mkdir(parents=True, exist_ok=True)
+    # Never persist google_api_key to disk.
     _write_metadata(job_dir, {
         "job_id": req.job_id,
         "status": "queued",
@@ -902,6 +1051,8 @@ async def parse_oss_task(req: OssTaskRequest) -> JSONResponse:
         "content_type": content_type,
         "image_mode": req.image_mode,
         "enrich_figures": enrich_figures,
+        "translate": translate,
+        "translate_provider": provider if translate else None,
         "attempt": req.attempt,
         "oss_source": req.oss_path,
         "created_at": created,
@@ -918,6 +1069,9 @@ async def parse_oss_task(req: OssTaskRequest) -> JSONResponse:
         attempt=req.attempt,
         image_mode=req.image_mode,
         enrich_figures=enrich_figures,
+        translate=translate,
+        translate_provider=provider,
+        google_api_key=req.google_api_key if translate and provider == "google" else None,
         future=None,
     )
     try:
@@ -997,6 +1151,10 @@ def main() -> None:
     global _figure_prompt_profile, _figure_fallback_profile, _figure_max_images
     global _figure_max_workers, _figure_timeout, _figure_max_tokens
     global _figure_vllm_url, _figure_vllm_model
+    global _translation_enabled, _translation_default_provider
+    global _translation_target_language, _translation_source_language, _translation_prompt
+    global _translation_max_workers, _translation_timeout, _translation_max_tokens
+    global _translation_max_segments, _translation_google_batch_size
     global _oss_endpoint, _oss_access_key_id, _oss_access_key_secret
     global _oss_bucket_name, _oss_prefix, _oss_signed_url_expires
     service_config_path = Path(args.service_config).expanduser().resolve()
@@ -1007,6 +1165,7 @@ def main() -> None:
     queues = service_config.get("queues", {})
     vllm = service_config.get("vllm", {})
     figure_cfg = service_config.get("figure_enrichment", {})
+    translation_cfg = service_config.get("translation", {})
 
     def config_path(value: str | None, fallback: Path) -> Path:
         path = Path(value) if value else fallback
@@ -1092,6 +1251,32 @@ def main() -> None:
     )
     _figure_vllm_model = str(figure_cfg.get("vllm_model", "qwen3.5-9b"))
 
+    # Translation reuses the figure VL endpoint (same Qwen as Mermaid).
+    # Master switch defaults on; per-request `translate` defaults off.
+    _translation_enabled = bool(translation_cfg.get("enabled", True))
+    default_provider = str(
+        translation_cfg.get("default_provider", "llm")
+    ).strip().lower()
+    if default_provider not in {"llm", "google"}:
+        default_provider = "llm"
+    _translation_default_provider = default_provider  # type: ignore[assignment]
+    _translation_target_language = str(
+        translation_cfg.get("target_language", "Simplified Chinese")
+    ).strip() or "Simplified Chinese"
+    _translation_source_language = str(
+        translation_cfg.get("source_language", "en")
+    ).strip() or "en"
+    prompt_override = translation_cfg.get("prompt")
+    if prompt_override and str(prompt_override).strip():
+        _translation_prompt = str(prompt_override)
+    else:
+        _translation_prompt = DEFAULT_TRANSLATE_PROMPT
+    _translation_max_workers = int(translation_cfg.get("max_workers", 2))
+    _translation_timeout = int(translation_cfg.get("timeout", 300))
+    _translation_max_tokens = int(translation_cfg.get("max_tokens", 4096))
+    _translation_max_segments = int(translation_cfg.get("max_segments", 500))
+    _translation_google_batch_size = int(translation_cfg.get("google_batch_size", 40))
+
     _oss_endpoint = os.environ.get("OSS_ENDPOINT", "")
     _oss_access_key_id = os.environ.get("OSS_ACCESS_KEY_ID", "")
     _oss_access_key_secret = os.environ.get("OSS_ACCESS_KEY_SECRET", "")
@@ -1115,7 +1300,8 @@ def main() -> None:
 
     logger.info(
         "Starting GLM-OCR v3 on %s:%d (output=%s, figure_enrichment=%s, "
-        "prompt_profile=%s, fallback_profile=%s, figure_vl=%s/%s)",
+        "prompt_profile=%s, fallback_profile=%s, figure_vl=%s/%s, "
+        "translation=%s/%s/%s)",
         host,
         port,
         _output_root,
@@ -1124,6 +1310,9 @@ def main() -> None:
         _figure_fallback_profile,
         _figure_vllm_model,
         _figure_vllm_url,
+        _translation_enabled,
+        _translation_default_provider,
+        _translation_target_language,
     )
     uvicorn.run(app, host=host, port=port, log_level="info")
 
