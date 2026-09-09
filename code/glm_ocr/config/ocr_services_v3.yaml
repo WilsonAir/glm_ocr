@@ -61,7 +61,8 @@ figure_enrichment:
 
 # Layout 完成后，对段落标题 / 段落翻译（Mermaid/代码块不译）。
 # 请求参数 translate 默认 false；translate_provider 默认 llm（Qwen）。
-# provider=google 时须在请求中即时传入 google_api_key（不落盘）。
+# provider=google 时须传入 google_api_key；provider=baidu 时须传入
+# baidu_app_id + baidu_secret_key（或 baidu_api_key=appid:secret）。凭证不落盘。
 translation:
   enabled: true
   default_provider: llm

@@ -26,7 +26,7 @@
 | 版面检测 | PP-DocLayoutV3 |
 | 正文 / 区域 OCR | `glm-ocr`（vLLM `:18080`） |
 | 流程图 → Mermaid | `qwen3.5-9b`（vLLM `:18003`） |
-| 标题 / 段落翻译 | `llm`（Qwen）或 `google`（Cloud Translation v2，Key 请求时传入） |
+| 标题 / 段落翻译 | `llm` / `google` / `baidu`（Key 请求时传入） |
 
 开关：
 
@@ -34,8 +34,11 @@
 |---|---|---|
 | `enrich_figures` | `true` | Layout 裁出的 `imgs/` 再调 Qwen → Mermaid / Caption |
 | `translate` | `false` | 对段落标题与段落做中文翻译；**不译** Mermaid / 代码块 |
-| `translate_provider` | `llm` | `llm` 或 `google` |
-| `google_api_key` | — | Form/JSON 字段；`provider=google` 时必填，**不落盘** |
+| `translate_provider` | `llm` | `llm` / `google` / `baidu` |
+| `google_api_key` | — | Form/JSON；`provider=google` 时必填，**不落盘** |
+| `baidu_app_id` | — | Form/JSON；百度 APP ID |
+| `baidu_secret_key` | — | Form/JSON；百度密钥 |
+| `baidu_api_key` | — | 可选，格式 `appid:secret`（与上两字段二选一） |
 
 ---
 
@@ -75,7 +78,7 @@ curl -s '{BASE_URL}/health' | python -m json.tool
     "enabled": true,
     "default_request": false,
     "default_provider": "llm",
-    "providers": ["llm", "google"],
+    "providers": ["llm", "google", "baidu"],
     "target_language": "Simplified Chinese",
     "vllm_model": "qwen3.5-9b"
   }
@@ -111,8 +114,11 @@ Content-Type: multipart/form-data
 | `image_mode` | Query | 否 | `auto` | `auto` / `layout` / `model_only` |
 | `enrich_figures` | Query | 否 | `true` | 是否对 `imgs/` 做 Qwen→Mermaid |
 | `translate` | Query | 否 | `false` | 是否翻译段落标题 / 段落 |
-| `translate_provider` | Query | 否 | `llm` | `llm`（Qwen）或 `google` |
+| `translate_provider` | Query | 否 | `llm` | `llm` / `google` / `baidu` |
 | `google_api_key` | Form | 条件 | — | `translate_provider=google` 时必填 |
+| `baidu_app_id` | Form | 条件 | — | `baidu` 时与 secret 一起必填 |
+| `baidu_secret_key` | Form | 条件 | — | 百度密钥 |
+| `baidu_api_key` | Form | 条件 | — | 可选 `appid:secret` 合一传入 |
 
 `image_mode`：
 
@@ -151,6 +157,25 @@ curl -X POST \
 
 官方接口为 Cloud Translation **Basic v2**（`translation.googleapis.com/language/translate/v2`），
 目标语言默认 `zh-CN`。Key 只在内存中使用，**不会写入** `job.json`。
+
+### 用百度翻译（APP ID + 密钥即时传入）
+
+```bash
+curl -X POST \
+  '{BASE_URL}/parse?enrich_figures=true&translate=true&translate_provider=baidu' \
+  -F 'file=@/path/to/document.pdf' \
+  -F 'baidu_app_id=YOUR_APP_ID' \
+  -F 'baidu_secret_key=YOUR_SECRET_KEY'
+```
+
+也可合一传入：
+
+```bash
+  -F 'baidu_api_key=YOUR_APP_ID:YOUR_SECRET_KEY'
+```
+
+接口为百度翻译开放平台通用翻译 API（`fanyi-api.baidu.com/api/trans/vip/translate`），
+目标语言默认 `zh`。凭证不落盘。
 
 ### 解析整页图片
 
@@ -269,11 +294,15 @@ curl -X POST '{BASE_URL}/parse_oss' \
     "translate": false,
     "translate_provider": "llm",
     "google_api_key": null,
+    "baidu_app_id": null,
+    "baidu_secret_key": null,
+    "baidu_api_key": null,
     "attempt": 1
   }'
 ```
 
-`translate_provider=google` 时在 JSON 里带上 `google_api_key`（同样不落盘）。
+`translate_provider=google` 时在 JSON 里带上 `google_api_key`；
+`baidu` 时带上 `baidu_app_id` + `baidu_secret_key`（或 `baidu_api_key`），同样不落盘。
 
 返回 HTTP `202` 后，用 `GET /results/{job_id}` 轮询。OSS 凭据由服务端环境注入，调用方不传密钥。
 
@@ -323,7 +352,7 @@ Path("result.md").write_text(data["text"], encoding="utf-8")
 ## 8. 调用建议
 
 1. 整页病例 / 指南 PDF：`enrich_figures=true`（默认）。  
-2. 需要中文正文：`translate=true`；默认 `translate_provider=llm`，或 `google` + Form/`google_api_key`。  
+2. 需要中文正文：`translate=true`；默认 `translate_provider=llm`，或 `google` / `baidu` + 对应凭证。  
 3. 已裁好的小图：`image_mode=model_only`。  
 4. 大 PDF 可能数分钟；开翻译会再增加调用时间，客户端超时建议 ≥ 30–60 分钟。  
 5. 需要原流程图裁剪时下载 `imgs/`；需要可编辑图时看 `figure_texts/` 或 `text` 里的 Mermaid；译文另见 `translations/`。

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
+import random
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -44,6 +47,7 @@ The source is OCR Markdown from oncology guidelines, case notes, or similar.
 """
 
 GOOGLE_TRANSLATE_URL = "https://translation.googleapis.com/language/translate/v2"
+BAIDU_TRANSLATE_URL = "https://fanyi-api.baidu.com/api/trans/vip/translate"
 
 # Human-readable labels → Google BCP-47 codes.
 TARGET_LANGUAGE_CODES: dict[str, str] = {
@@ -60,6 +64,23 @@ TARGET_LANGUAGE_CODES: dict[str, str] = {
     "en": "en",
 }
 
+# Baidu Fanyi uses its own codes (zh / cht / en …).
+BAIDU_LANGUAGE_CODES: dict[str, str] = {
+    "simplified chinese": "zh",
+    "chinese": "zh",
+    "zh": "zh",
+    "zh-cn": "zh",
+    "zh_cn": "zh",
+    "zh-hans": "zh",
+    "zh-CN": "zh",
+    "traditional chinese": "cht",
+    "zh-tw": "cht",
+    "zh_tw": "cht",
+    "zh-TW": "cht",
+    "english": "en",
+    "en": "en",
+}
+
 
 def resolve_google_language_code(language: str) -> str:
     key = language.strip().lower()
@@ -69,6 +90,20 @@ def resolve_google_language_code(language: str) -> str:
     if re.fullmatch(r"[a-z]{2}(-[A-Za-z]{2})?", language.strip()):
         return language.strip()
     return language.strip()
+
+
+def resolve_baidu_language_code(language: str) -> str:
+    raw = language.strip()
+    key = raw.lower()
+    if key in BAIDU_LANGUAGE_CODES:
+        return BAIDU_LANGUAGE_CODES[key]
+    if raw in BAIDU_LANGUAGE_CODES:
+        return BAIDU_LANGUAGE_CODES[raw]
+    # Pass through known short codes (zh, en, jp, kor, cht, …).
+    if re.fullmatch(r"[a-z]{2,3}", key):
+        return key
+    google = resolve_google_language_code(language)
+    return BAIDU_LANGUAGE_CODES.get(google.lower(), google)
 
 
 # Blocks that must not be sent to the translator as free prose.
@@ -194,6 +229,148 @@ def call_google_translate_batch(
             f"for {len(texts)} inputs"
         )
     return [str(item.get("translatedText") or "") for item in translations]
+
+
+def parse_baidu_credentials(
+    *,
+    app_id: str | None = None,
+    secret_key: str | None = None,
+    api_key: str | None = None,
+) -> tuple[str, str]:
+    """Resolve Baidu appid/secret from separate fields or `appid:secret` combo."""
+    app = (app_id or "").strip()
+    secret = (secret_key or "").strip()
+    combo = (api_key or "").strip()
+    if combo and (not app or not secret):
+        # Accept appid:secret or appid|secret or appid/secret.
+        for sep in (":", "|", "/", ";"):
+            if sep in combo:
+                left, right = combo.split(sep, 1)
+                app = app or left.strip()
+                secret = secret or right.strip()
+                break
+        else:
+            # Single token: treat as secret only when app_id already provided.
+            if app and not secret:
+                secret = combo
+            elif secret and not app:
+                app = combo
+    if not app or not secret:
+        raise ValueError(
+            "baidu credentials required: pass baidu_app_id + baidu_secret_key "
+            "(or baidu_api_key as 'appid:secret')"
+        )
+    return app, secret
+
+
+def call_baidu_translate(
+    text: str,
+    *,
+    app_id: str,
+    secret_key: str,
+    target_language: str = "Simplified Chinese",
+    source_language: str = "en",
+    timeout: int = 60,
+    max_retries: int = 4,
+    retry_backoff_sec: float = 1.2,
+) -> str:
+    """Translate one fragment via Baidu Fanyi open platform (vip/translate)."""
+    app, secret = parse_baidu_credentials(app_id=app_id, secret_key=secret_key)
+    q = text if text is not None else ""
+    if not q.strip():
+        return q
+    target = resolve_baidu_language_code(target_language)
+    source = resolve_baidu_language_code(source_language) if source_language else "auto"
+    last_error: Exception | None = None
+    for attempt in range(max(1, max_retries)):
+        salt = str(random.randint(32768, 65536))
+        sign = hashlib.md5(f"{app}{q}{salt}{secret}".encode("utf-8")).hexdigest()
+        response = requests.post(
+            BAIDU_TRANSLATE_URL,
+            data={
+                "q": q,
+                "from": source or "auto",
+                "to": target,
+                "appid": app,
+                "salt": salt,
+                "sign": sign,
+            },
+            timeout=timeout,
+        )
+        if response.status_code >= 400:
+            last_error = RuntimeError(
+                f"Baidu Translate HTTP {response.status_code}: {response.text[:500]}"
+            )
+        else:
+            raw = response.json()
+            err = str(raw.get("error_code") or "")
+            if err:
+                # 54003 = access/QPS limit on free tier; retry with backoff.
+                if err == "54003" and attempt + 1 < max_retries:
+                    time.sleep(retry_backoff_sec * (attempt + 1))
+                    continue
+                last_error = RuntimeError(
+                    f"Baidu Translate error {raw.get('error_code')}: {raw.get('error_msg')}"
+                )
+            else:
+                results = raw.get("trans_result") or []
+                if not results:
+                    last_error = RuntimeError("Baidu Translate returned empty trans_result")
+                else:
+                    # Keep paragraph breaks when API splits into multiple sentences.
+                    return "\n".join(str(item.get("dst") or "") for item in results)
+        if attempt + 1 < max_retries:
+            time.sleep(retry_backoff_sec * (attempt + 1))
+    assert last_error is not None
+    raise last_error
+
+
+def translate_segments_baidu(
+    segments: list[TranslateSegment],
+    *,
+    app_id: str,
+    secret_key: str,
+    target_language: str,
+    source_language: str = "en",
+    timeout: int = 60,
+    max_workers: int = 1,
+    min_interval_sec: float = 1.05,
+) -> list[TranslateSegment]:
+    """Translate via Baidu; default 1 worker + spacing for free-tier QPS."""
+    todo = [seg for seg in segments if _should_translate(seg)]
+    if not todo:
+        return segments
+
+    def run_one(seg: TranslateSegment) -> TranslateSegment:
+        try:
+            out = call_baidu_translate(
+                seg.source,
+                app_id=app_id,
+                secret_key=secret_key,
+                target_language=target_language,
+                source_language=source_language,
+                timeout=timeout,
+            )
+            seg.translated = _fix_heading_marker(seg.source, out, kind=seg.kind)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Baidu Translate failed for segment %s", seg.index)
+            seg.error = str(exc)
+            seg.translated = seg.source
+        return seg
+
+    # Free tier is often ~1 QPS; keep sequential with spacing by default.
+    workers = max(1, min(max_workers, len(todo)))
+    if workers == 1:
+        for idx, seg in enumerate(todo):
+            if idx and min_interval_sec > 0:
+                time.sleep(min_interval_sec)
+            run_one(seg)
+        return segments
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(run_one, seg) for seg in todo]
+        for future in as_completed(futures):
+            future.result()
+    return segments
 
 
 def _strip_model_wrapper(text: str) -> str:
@@ -425,6 +602,9 @@ def translate_job_markdown(
     vllm_url: str = "",
     vllm_model: str = "",
     google_api_key: str | None = None,
+    baidu_app_id: str | None = None,
+    baidu_secret_key: str | None = None,
+    baidu_api_key: str | None = None,
     target_language: str = "Simplified Chinese",
     source_language: str = "en",
     prompt_template: str = DEFAULT_TRANSLATE_PROMPT,
@@ -436,10 +616,18 @@ def translate_job_markdown(
 ) -> tuple[str, dict[str, Any]]:
     """Translate headings/paragraphs in Markdown; leave Mermaid/fences alone."""
     provider_key = (provider or "llm").strip().lower()
-    if provider_key not in {"llm", "google"}:
+    if provider_key not in {"llm", "google", "baidu"}:
         raise ValueError(f"Unsupported translate provider: {provider}")
     if provider_key == "google" and not (google_api_key and google_api_key.strip()):
         raise ValueError("google_api_key is required when translate_provider=google")
+    baidu_app = ""
+    baidu_secret = ""
+    if provider_key == "baidu":
+        baidu_app, baidu_secret = parse_baidu_credentials(
+            app_id=baidu_app_id,
+            secret_key=baidu_secret_key,
+            api_key=baidu_api_key,
+        )
 
     segments = split_markdown_for_translation(markdown)
     translatable = [s for s in segments if _should_translate(s)]
@@ -461,9 +649,13 @@ def translate_job_markdown(
     if provider_key == "llm":
         summary["model"] = vllm_model
         summary["vllm_url"] = vllm_url
-    else:
+    elif provider_key == "google":
         summary["google_target"] = resolve_google_language_code(target_language)
         summary["google_source"] = resolve_google_language_code(source_language)
+    else:
+        summary["baidu_target"] = resolve_baidu_language_code(target_language)
+        summary["baidu_source"] = resolve_baidu_language_code(source_language)
+        summary["baidu_app_id"] = baidu_app
 
     if not translatable:
         summary["skipped_reason"] = "no_heading_or_paragraph"
@@ -477,6 +669,17 @@ def translate_job_markdown(
             source_language=source_language,
             timeout=min(timeout, 120),
             batch_size=google_batch_size,
+        )
+    elif provider_key == "baidu":
+        translate_segments_baidu(
+            segments,
+            app_id=baidu_app,
+            secret_key=baidu_secret,
+            target_language=target_language,
+            source_language=source_language,
+            timeout=min(timeout, 60),
+            # Free tier is ~1 QPS; force sequential spacing.
+            max_workers=1,
         )
     else:
         def caller(text: str) -> str:

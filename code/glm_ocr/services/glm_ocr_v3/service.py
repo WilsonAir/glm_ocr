@@ -34,7 +34,11 @@ from figure_enrichment import (
     enrich_job_figures,
     resolve_figure_prompt,
 )
-from text_translation import DEFAULT_TRANSLATE_PROMPT, translate_job_markdown
+from text_translation import (
+    DEFAULT_TRANSLATE_PROMPT,
+    parse_baidu_credentials,
+    translate_job_markdown,
+)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -131,8 +135,11 @@ class QueueJob:
     image_mode: Literal["auto", "layout", "model_only"] = "auto"
     enrich_figures: bool = True
     translate: bool = False
-    translate_provider: Literal["llm", "google"] = "llm"
+    translate_provider: Literal["llm", "google", "baidu"] = "llm"
     google_api_key: str | None = None
+    baidu_app_id: str | None = None
+    baidu_secret_key: str | None = None
+    baidu_api_key: str | None = None
     future: asyncio.Future[dict[str, Any]] | None = None
 
 
@@ -356,12 +363,12 @@ def _should_translate(job: QueueJob) -> bool:
 
 def _normalize_translate_provider(
     provider: str | None,
-) -> Literal["llm", "google"]:
+) -> Literal["llm", "google", "baidu"]:
     key = (provider or _translation_default_provider or "llm").strip().lower()
-    if key not in {"llm", "google"}:
+    if key not in {"llm", "google", "baidu"}:
         raise HTTPException(
             status_code=400,
-            detail="translate_provider must be 'llm' or 'google'",
+            detail="translate_provider must be 'llm', 'google', or 'baidu'",
         )
     return key  # type: ignore[return-value]
 
@@ -370,8 +377,11 @@ def _validate_translate_options(
     *,
     translate: bool,
     mode: Literal["layout", "model_only"],
-    translate_provider: Literal["llm", "google"],
+    translate_provider: Literal["llm", "google", "baidu"],
     google_api_key: str | None,
+    baidu_app_id: str | None = None,
+    baidu_secret_key: str | None = None,
+    baidu_api_key: str | None = None,
 ) -> None:
     if not translate or mode != "layout":
         return
@@ -380,6 +390,22 @@ def _validate_translate_options(
             status_code=400,
             detail="google_api_key is required when translate_provider=google",
         )
+    if translate_provider == "baidu":
+        try:
+            parse_baidu_credentials(
+                app_id=baidu_app_id,
+                secret_key=baidu_secret_key,
+                api_key=baidu_api_key,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def _clear_translate_secrets(job: QueueJob) -> None:
+    job.google_api_key = None
+    job.baidu_app_id = None
+    job.baidu_secret_key = None
+    job.baidu_api_key = None
 
 
 def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
@@ -423,6 +449,9 @@ def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
                 vllm_url=_figure_vllm_url,
                 vllm_model=_figure_vllm_model,
                 google_api_key=job.google_api_key,
+                baidu_app_id=job.baidu_app_id,
+                baidu_secret_key=job.baidu_secret_key,
+                baidu_api_key=job.baidu_api_key,
                 target_language=_translation_target_language,
                 source_language=_translation_source_language,
                 prompt_template=_translation_prompt,
@@ -432,8 +461,8 @@ def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
                 max_segments=_translation_max_segments,
                 google_batch_size=_translation_google_batch_size,
             )
-            # Drop key from memory after use.
-            job.google_api_key = None
+            # Drop keys from memory after use.
+            _clear_translate_secrets(job)
         metadata = _update_metadata(
             job_dir,
             status="completed",
@@ -450,7 +479,7 @@ def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
         )
         return _complete_response(job_dir, metadata, markdown)
     except Exception as exc:
-        job.google_api_key = None
+        _clear_translate_secrets(job)
         _update_metadata(
             job_dir,
             status="failed",
@@ -674,8 +703,11 @@ async def _enqueue(
     images_only: bool,
     enrich_figures: bool,
     translate: bool,
-    translate_provider: Literal["llm", "google"],
+    translate_provider: Literal["llm", "google", "baidu"],
     google_api_key: str | None,
+    baidu_app_id: str | None = None,
+    baidu_secret_key: str | None = None,
+    baidu_api_key: str | None = None,
 ) -> JSONResponse:
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename")
@@ -707,6 +739,9 @@ async def _enqueue(
         mode=mode,
         translate_provider=provider,
         google_api_key=google_api_key,
+        baidu_app_id=baidu_app_id,
+        baidu_secret_key=baidu_secret_key,
+        baidu_api_key=baidu_api_key,
     )
     if mode == "model_only":
         queue = _model_queue
@@ -733,7 +768,7 @@ async def _enqueue(
     job_dir = _safe_job_dir(job_id)
     job_dir.mkdir(parents=True, exist_ok=False)
     created = _beijing_now()
-    # Never persist google_api_key to disk.
+    # Never persist API secrets to disk.
     _write_metadata(job_dir, {
         "job_id": job_id,
         "status": "queued",
@@ -759,6 +794,9 @@ async def _enqueue(
         translate=do_translate,
         translate_provider=provider,
         google_api_key=google_api_key if do_translate and provider == "google" else None,
+        baidu_app_id=baidu_app_id if do_translate and provider == "baidu" else None,
+        baidu_secret_key=baidu_secret_key if do_translate and provider == "baidu" else None,
+        baidu_api_key=baidu_api_key if do_translate and provider == "baidu" else None,
         future=future,
     )
     try:
@@ -834,7 +872,7 @@ async def health() -> dict[str, Any]:
             "enabled": _translation_enabled,
             "default_request": False,
             "default_provider": _translation_default_provider,
-            "providers": ["llm", "google"],
+            "providers": ["llm", "google", "baidu"],
             "target_language": _translation_target_language,
             "source_language": _translation_source_language,
             "max_workers": _translation_max_workers,
@@ -842,6 +880,7 @@ async def health() -> dict[str, Any]:
             "vllm_url": _figure_vllm_url,
             "vllm_model": _figure_vllm_model,
             "google_api": "Cloud Translation Basic v2 (key passed per request)",
+            "baidu_api": "Fanyi open platform vip/translate (appid+secret per request)",
         },
         "queues": {
             "pdf_layout": _queue_snapshot(
@@ -913,13 +952,25 @@ async def parse_document(
         False,
         description="For layout jobs, translate headings/paragraphs (default off)",
     ),
-    translate_provider: Literal["llm", "google"] = Query(
+    translate_provider: Literal["llm", "google", "baidu"] = Query(
         "llm",
-        description="Translation backend: llm (Qwen) or google (Cloud Translation v2)",
+        description="Translation backend: llm | google | baidu",
     ),
     google_api_key: str | None = Form(
         None,
         description="Google Cloud Translation API key; required when translate_provider=google",
+    ),
+    baidu_app_id: str | None = Form(
+        None,
+        description="Baidu Fanyi APP ID; required with baidu_secret_key when provider=baidu",
+    ),
+    baidu_secret_key: str | None = Form(
+        None,
+        description="Baidu Fanyi secret key; required with baidu_app_id when provider=baidu",
+    ),
+    baidu_api_key: str | None = Form(
+        None,
+        description="Optional combo 'appid:secret' when separate Baidu fields are omitted",
     ),
 ) -> JSONResponse:
     return await _enqueue(
@@ -930,6 +981,9 @@ async def parse_document(
         translate=translate,
         translate_provider=translate_provider,
         google_api_key=google_api_key,
+        baidu_app_id=baidu_app_id,
+        baidu_secret_key=baidu_secret_key,
+        baidu_api_key=baidu_api_key,
     )
 
 
@@ -945,13 +999,25 @@ async def parse_image(
         False,
         description="For layout jobs, translate headings/paragraphs (default off)",
     ),
-    translate_provider: Literal["llm", "google"] = Query(
+    translate_provider: Literal["llm", "google", "baidu"] = Query(
         "llm",
-        description="Translation backend: llm (Qwen) or google (Cloud Translation v2)",
+        description="Translation backend: llm | google | baidu",
     ),
     google_api_key: str | None = Form(
         None,
         description="Google Cloud Translation API key; required when translate_provider=google",
+    ),
+    baidu_app_id: str | None = Form(
+        None,
+        description="Baidu Fanyi APP ID; required with baidu_secret_key when provider=baidu",
+    ),
+    baidu_secret_key: str | None = Form(
+        None,
+        description="Baidu Fanyi secret key; required with baidu_app_id when provider=baidu",
+    ),
+    baidu_api_key: str | None = Form(
+        None,
+        description="Optional combo 'appid:secret' when separate Baidu fields are omitted",
     ),
 ) -> JSONResponse:
     return await _enqueue(
@@ -962,6 +1028,9 @@ async def parse_image(
         translate=translate,
         translate_provider=translate_provider,
         google_api_key=google_api_key,
+        baidu_app_id=baidu_app_id,
+        baidu_secret_key=baidu_secret_key,
+        baidu_api_key=baidu_api_key,
     )
 
 
@@ -991,8 +1060,11 @@ class OssTaskRequest(BaseModel):
     image_mode: Literal["auto", "layout", "model_only"] = "auto"
     enrich_figures: bool = True
     translate: bool = False
-    translate_provider: Literal["llm", "google"] = "llm"
+    translate_provider: Literal["llm", "google", "baidu"] = "llm"
     google_api_key: str | None = None
+    baidu_app_id: str | None = None
+    baidu_secret_key: str | None = None
+    baidu_api_key: str | None = None
     attempt: int = Field(default=1, ge=1)
 
 
@@ -1026,6 +1098,9 @@ async def parse_oss_task(req: OssTaskRequest) -> JSONResponse:
         mode=mode,
         translate_provider=provider,
         google_api_key=req.google_api_key,
+        baidu_app_id=req.baidu_app_id,
+        baidu_secret_key=req.baidu_secret_key,
+        baidu_api_key=req.baidu_api_key,
     )
     if mode == "model_only":
         queue = _model_queue
@@ -1042,7 +1117,7 @@ async def parse_oss_task(req: OssTaskRequest) -> JSONResponse:
     filename = Path(req.oss_path).name or "input.bin"
     created = _beijing_now()
     job_dir.mkdir(parents=True, exist_ok=True)
-    # Never persist google_api_key to disk.
+    # Never persist API secrets to disk.
     _write_metadata(job_dir, {
         "job_id": req.job_id,
         "status": "queued",
@@ -1072,6 +1147,9 @@ async def parse_oss_task(req: OssTaskRequest) -> JSONResponse:
         translate=translate,
         translate_provider=provider,
         google_api_key=req.google_api_key if translate and provider == "google" else None,
+        baidu_app_id=req.baidu_app_id if translate and provider == "baidu" else None,
+        baidu_secret_key=req.baidu_secret_key if translate and provider == "baidu" else None,
+        baidu_api_key=req.baidu_api_key if translate and provider == "baidu" else None,
         future=None,
     )
     try:
@@ -1257,7 +1335,7 @@ def main() -> None:
     default_provider = str(
         translation_cfg.get("default_provider", "llm")
     ).strip().lower()
-    if default_provider not in {"llm", "google"}:
+    if default_provider not in {"llm", "google", "baidu"}:
         default_provider = "llm"
     _translation_default_provider = default_provider  # type: ignore[assignment]
     _translation_target_language = str(
