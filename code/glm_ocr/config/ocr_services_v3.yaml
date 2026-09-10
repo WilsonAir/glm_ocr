@@ -68,10 +68,10 @@ translation:
   default_provider: llm
   target_language: Simplified Chinese
   source_language: en
-  max_workers: 2
+  max_workers: 8
   timeout: 300
   max_tokens: 4096
-  max_segments: 500
+  max_segments: 2000
   google_batch_size: 40
   # 同类段落（先全部标题、再全部正文）用 <<<OCR_SEG_ID_n>>> 拼批翻译，再拆回。
   # 实际批大小会再按 max_tokens 收紧，避免超过 LLM 最大输出长度。
