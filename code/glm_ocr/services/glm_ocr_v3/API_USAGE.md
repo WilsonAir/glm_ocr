@@ -40,6 +40,11 @@
 | `baidu_secret_key` | — | Form/JSON；百度密钥 |
 | `baidu_api_key` | — | 可选，格式 `appid:secret`（与上两字段二选一） |
 
+翻译内部默认 **合并同类段**：标题整批拼接；**小段落**（默认 ≤1200 字）也会拼批，大段单独译；
+用 `<<<OCR_SEG_ID_n>>>` 拼包，译完再拆回。拆包失败的段回退逐段翻译。
+批大小受 `merge_max_chars` 与 `max_tokens` 共同约束。  
+配置：`merge_segments` / `merge_max_chars` / `merge_small_para_chars` / `max_tokens`。
+
 ---
 
 ## 支持的文件类型

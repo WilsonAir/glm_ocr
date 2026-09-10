@@ -105,6 +105,9 @@ _translation_timeout = 300
 _translation_max_tokens = 4096
 _translation_max_segments = 500
 _translation_google_batch_size = 40
+_translation_merge_segments = True
+_translation_merge_max_chars = 3500
+_translation_merge_small_para_chars = 1200
 _oss_endpoint = ""
 _oss_access_key_id = ""
 _oss_access_key_secret = ""
@@ -460,6 +463,9 @@ def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
                 max_workers=_translation_max_workers,
                 max_segments=_translation_max_segments,
                 google_batch_size=_translation_google_batch_size,
+                merge_segments=_translation_merge_segments,
+                merge_max_chars=_translation_merge_max_chars,
+                merge_small_para_chars=_translation_merge_small_para_chars,
             )
             # Drop keys from memory after use.
             _clear_translate_secrets(job)
@@ -877,6 +883,9 @@ async def health() -> dict[str, Any]:
             "source_language": _translation_source_language,
             "max_workers": _translation_max_workers,
             "max_segments": _translation_max_segments,
+            "merge_segments": _translation_merge_segments,
+            "merge_max_chars": _translation_merge_max_chars,
+            "merge_small_para_chars": _translation_merge_small_para_chars,
             "vllm_url": _figure_vllm_url,
             "vllm_model": _figure_vllm_model,
             "google_api": "Cloud Translation Basic v2 (key passed per request)",
@@ -1233,6 +1242,8 @@ def main() -> None:
     global _translation_target_language, _translation_source_language, _translation_prompt
     global _translation_max_workers, _translation_timeout, _translation_max_tokens
     global _translation_max_segments, _translation_google_batch_size
+    global _translation_merge_segments, _translation_merge_max_chars
+    global _translation_merge_small_para_chars
     global _oss_endpoint, _oss_access_key_id, _oss_access_key_secret
     global _oss_bucket_name, _oss_prefix, _oss_signed_url_expires
     service_config_path = Path(args.service_config).expanduser().resolve()
@@ -1354,6 +1365,11 @@ def main() -> None:
     _translation_max_tokens = int(translation_cfg.get("max_tokens", 4096))
     _translation_max_segments = int(translation_cfg.get("max_segments", 500))
     _translation_google_batch_size = int(translation_cfg.get("google_batch_size", 40))
+    _translation_merge_segments = bool(translation_cfg.get("merge_segments", True))
+    _translation_merge_max_chars = int(translation_cfg.get("merge_max_chars", 3500))
+    _translation_merge_small_para_chars = int(
+        translation_cfg.get("merge_small_para_chars", 1200)
+    )
 
     _oss_endpoint = os.environ.get("OSS_ENDPOINT", "")
     _oss_access_key_id = os.environ.get("OSS_ACCESS_KEY_ID", "")

@@ -42,9 +42,24 @@ The source is OCR Markdown from oncology guidelines, case notes, or similar.
 5. Translate paragraph titles and body prose fluently into natural <<TARGET_LANGUAGE>>.
 6. Keep numbers, units, dosages, and laboratory values unchanged.
 7. Do not invent clinical content. If a token is illegible OCR garbage, keep it as-is.
+8. If the source contains markers like <<<OCR_SEG_ID_0>>>, keep every marker EXACTLY
+   as-is, in the same order, on its own line. Translate only the text between markers.
+   Do not add, remove, renumber, or translate the markers themselves.
 
 ## Source text
 """
+
+# Unique delimiters for packed multi-segment calls. Keep ASCII-only and
+# distinctive so models are less likely to rewrite them.
+SEG_MARK_RE = re.compile(
+    r"^[ \t]*<<<OCR_SEG_ID_(\d+)>>>[ \t]*$",
+    re.MULTILINE,
+)
+SEG_MARK_FMT = "<<<OCR_SEG_ID_{idx}>>>"
+PACK_HEADER = (
+    "Keep every <<<OCR_SEG_ID_n>>> marker exactly, unchanged, on its own line, "
+    "in the same order. Translate only the text between markers.\n\n"
+)
 
 GOOGLE_TRANSLATE_URL = "https://translation.googleapis.com/language/translate/v2"
 BAIDU_TRANSLATE_URL = "https://fanyi-api.baidu.com/api/trans/vip/translate"
@@ -335,42 +350,38 @@ def translate_segments_baidu(
     timeout: int = 60,
     max_workers: int = 1,
     min_interval_sec: float = 1.05,
+    merge_segments: bool = True,
+    merge_max_chars: int = 2800,
+    merge_small_para_chars: int = 1200,
 ) -> list[TranslateSegment]:
-    """Translate via Baidu; default 1 worker + spacing for free-tier QPS."""
-    todo = [seg for seg in segments if _should_translate(seg)]
-    if not todo:
-        return segments
+    """Translate via Baidu; merge segments with markers; pace free-tier QPS."""
+    last_call = {"t": 0.0}
 
-    def run_one(seg: TranslateSegment) -> TranslateSegment:
-        try:
-            out = call_baidu_translate(
-                seg.source,
-                app_id=app_id,
-                secret_key=secret_key,
-                target_language=target_language,
-                source_language=source_language,
-                timeout=timeout,
-            )
-            seg.translated = _fix_heading_marker(seg.source, out, kind=seg.kind)
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("Baidu Translate failed for segment %s", seg.index)
-            seg.error = str(exc)
-            seg.translated = seg.source
-        return seg
+    def caller(text: str) -> str:
+        if min_interval_sec > 0 and last_call["t"]:
+            wait = min_interval_sec - (time.perf_counter() - last_call["t"])
+            if wait > 0:
+                time.sleep(wait)
+        out = call_baidu_translate(
+            text,
+            app_id=app_id,
+            secret_key=secret_key,
+            target_language=target_language,
+            source_language=source_language,
+            timeout=timeout,
+        )
+        last_call["t"] = time.perf_counter()
+        return out
 
-    # Free tier is often ~1 QPS; keep sequential with spacing by default.
-    workers = max(1, min(max_workers, len(todo)))
-    if workers == 1:
-        for idx, seg in enumerate(todo):
-            if idx and min_interval_sec > 0:
-                time.sleep(min_interval_sec)
-            run_one(seg)
-        return segments
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = [pool.submit(run_one, seg) for seg in todo]
-        for future in as_completed(futures):
-            future.result()
-    return segments
+    return translate_segments(
+        segments,
+        caller=caller,
+        max_workers=1 if merge_segments else max_workers,
+        merge_segments=merge_segments,
+        merge_max_chars=merge_max_chars,
+        max_tokens=None,  # Baidu is char-capped below, not LLM max_tokens.
+        merge_small_para_chars=merge_small_para_chars,
+    )
 
 
 def _strip_model_wrapper(text: str) -> str:
@@ -501,16 +512,177 @@ def _fix_heading_marker(source: str, translated: str, *, kind: str) -> str:
     return text
 
 
+def pack_segments_with_markers(segments: list[TranslateSegment]) -> str:
+    """Join segments with stable delimiters for a single translator call."""
+    parts: list[str] = [PACK_HEADER.rstrip(), ""]
+    for seg in segments:
+        parts.append(SEG_MARK_FMT.format(idx=seg.index))
+        parts.append(seg.source.rstrip("\n"))
+        parts.append("")  # blank line between blocks
+    return "\n".join(parts).rstrip() + "\n"
+
+
+def unpack_segments_with_markers(
+    packed_translation: str,
+    segments: list[TranslateSegment],
+) -> dict[int, str] | None:
+    """Split packed translation back to {segment_index: text}.
+
+    Returns None when no usable markers are found. Partial hits are returned
+    so the caller can fall back only for missing segments.
+    """
+    text = packed_translation.strip()
+    if not text:
+        return None
+    matches = list(SEG_MARK_RE.finditer(text))
+    if not matches:
+        # Some models put markers inline; try a looser search.
+        loose = list(re.finditer(r"<<<OCR_SEG_ID_(\d+)>>>", text))
+        if not loose:
+            return None
+        matches = loose  # type: ignore[assignment]
+        out: dict[int, str] = {}
+        for i, match in enumerate(matches):
+            start = match.end()
+            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            body = text[start:end]
+            body = re.sub(r"^\s*\n", "", body).strip()
+            out[int(match.group(1))] = body
+        expected = {seg.index for seg in segments}
+        if not expected.intersection(out):
+            return None
+        return out
+
+    out = {}
+    for i, match in enumerate(matches):
+        start = match.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        body = text[start:end]
+        body = re.sub(r"^\s*\n", "", body).strip()
+        out[int(match.group(1))] = body
+    expected = {seg.index for seg in segments}
+    if not expected.intersection(out):
+        return None
+    missing = expected - set(out)
+    if missing:
+        logger.warning(
+            "Packed translate missing markers for segments %s (got %s)",
+            sorted(missing),
+            sorted(out),
+        )
+    return out
+
+
+def resolve_merge_max_chars(
+    *,
+    merge_max_chars: int,
+    max_tokens: int,
+    output_chars_per_token: float = 1.2,
+    expansion_ratio: float = 1.3,
+    safety: float = 0.80,
+) -> int:
+    """Cap packed-batch size so expected translation fits in max_tokens.
+
+    Conservative for EN→ZH: treat ~1.2 output chars/token and allow translation
+    to expand vs source, with spare room for markers / model verbosity.
+    """
+    tokens = max(64, int(max_tokens))
+    # Hard ceiling on completion characters.
+    max_out_chars = int(tokens * max(0.5, output_chars_per_token) * max(0.5, safety))
+    # Source pack (content + markers) should stay below this after expansion.
+    capped = int(max_out_chars / max(1.0, expansion_ratio))
+    capped -= len(PACK_HEADER) + 128
+    capped = max(200, capped)
+    if merge_max_chars and merge_max_chars > 0:
+        capped = min(int(merge_max_chars), capped)
+    return capped
+
+
+def _chunk_segments_by_chars(
+    segments: list[TranslateSegment],
+    *,
+    max_chars: int,
+) -> list[list[TranslateSegment]]:
+    """Pack segments into batches that stay under max_chars (incl. markers)."""
+    if max_chars <= 0:
+        return [[seg] for seg in segments]
+    batches: list[list[TranslateSegment]] = []
+    current: list[TranslateSegment] = []
+    current_len = len(PACK_HEADER) + 2
+    for seg in segments:
+        marker = SEG_MARK_FMT.format(idx=seg.index)
+        piece = len(marker) + 1 + len(seg.source) + 2
+        if current and current_len + piece > max_chars:
+            batches.append(current)
+            current = []
+            current_len = len(PACK_HEADER) + 2
+        # Single oversized segment: still alone in its batch.
+        if not current and piece > max_chars:
+            batches.append([seg])
+            continue
+        current.append(seg)
+        current_len += piece
+    if current:
+        batches.append(current)
+    return batches
+
+
+def _chunk_paragraphs_for_merge(
+    paragraphs: list[TranslateSegment],
+    *,
+    max_chars: int,
+    small_para_chars: int,
+) -> list[list[TranslateSegment]]:
+    """Pack small paragraphs together; translate large ones alone.
+
+    Walks in document order: accumulate small paras into packed batches (under
+    max_chars / max_tokens budget). When a large paragraph appears, flush the
+    small buffer first, then emit the large paragraph as its own batch(es).
+    """
+    if not paragraphs:
+        return []
+    small_limit = max(64, int(small_para_chars))
+    batches: list[list[TranslateSegment]] = []
+    small_buf: list[TranslateSegment] = []
+
+    def flush_small() -> None:
+        nonlocal small_buf
+        if not small_buf:
+            return
+        batches.extend(_chunk_segments_by_chars(small_buf, max_chars=max_chars))
+        small_buf = []
+
+    for seg in paragraphs:
+        if len(seg.source.strip()) <= small_limit:
+            small_buf.append(seg)
+            continue
+        flush_small()
+        batches.extend(_chunk_segments_by_chars([seg], max_chars=max_chars))
+    flush_small()
+    return batches
+
+
 def translate_segments(
     segments: list[TranslateSegment],
     *,
     caller: Callable[[str], str],
     max_workers: int = 2,
+    merge_segments: bool = True,
+    merge_max_chars: int = 3500,
+    max_tokens: int | None = None,
+    merge_small_para_chars: int = 1200,
 ) -> list[TranslateSegment]:
-    """Translate heading/paragraph segments in parallel."""
+    """Translate heading/paragraph segments; optionally merge with markers."""
     todo = [seg for seg in segments if _should_translate(seg)]
     if not todo:
         return segments
+
+    effective_merge_chars = merge_max_chars
+    if max_tokens is not None:
+        effective_merge_chars = resolve_merge_max_chars(
+            merge_max_chars=merge_max_chars,
+            max_tokens=max_tokens,
+        )
 
     def run_one(seg: TranslateSegment) -> TranslateSegment:
         try:
@@ -524,9 +696,79 @@ def translate_segments(
             seg.translated = seg.source
         return seg
 
-    workers = max(1, min(max_workers, len(todo)))
+    def run_batch(batch: list[TranslateSegment]) -> None:
+        if len(batch) == 1:
+            run_one(batch[0])
+            return
+        packed = pack_segments_with_markers(batch)
+        try:
+            raw = caller(packed)
+            mapping = unpack_segments_with_markers(raw, batch)
+            if mapping is None:
+                logger.warning(
+                    "Packed translate unpack failed (%d segs); falling back "
+                    "to per-segment",
+                    len(batch),
+                )
+                for seg in batch:
+                    run_one(seg)
+                return
+            missing: list[TranslateSegment] = []
+            for seg in batch:
+                if seg.index in mapping and mapping[seg.index].strip():
+                    seg.translated = _fix_heading_marker(
+                        seg.source, mapping[seg.index], kind=seg.kind
+                    )
+                else:
+                    missing.append(seg)
+            for seg in missing:
+                run_one(seg)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Packed translate failed for %d segments", len(batch))
+            for seg in batch:
+                if seg.translated is None:
+                    seg.error = str(exc)
+                    seg.translated = seg.source
+
+    if not merge_segments:
+        workers = max(1, min(max_workers, len(todo)))
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = [pool.submit(run_one, seg) for seg in todo]
+            for future in as_completed(futures):
+                future.result()
+        return segments
+
+    # Headings are usually short → pack together under the budget.
+    # Paragraphs: pack small ones together; keep large blocks solo.
+    headings = [s for s in todo if s.kind == "heading"]
+    paragraphs = [s for s in todo if s.kind == "paragraph"]
+    others = [s for s in todo if s.kind not in {"heading", "paragraph"}]
+    batches = (
+        _chunk_segments_by_chars(headings, max_chars=effective_merge_chars)
+        + _chunk_paragraphs_for_merge(
+            paragraphs,
+            max_chars=effective_merge_chars,
+            small_para_chars=merge_small_para_chars,
+        )
+        + _chunk_segments_by_chars(others, max_chars=effective_merge_chars)
+    )
+    logger.info(
+        "Translate merge: batches=%d packed_batches=%d packed_segments=%d "
+        "solo=%d budget_chars=%d small_para<=%d",
+        len(batches),
+        sum(1 for batch in batches if len(batch) > 1),
+        sum(len(batch) for batch in batches if len(batch) > 1),
+        sum(1 for batch in batches if len(batch) == 1),
+        effective_merge_chars,
+        merge_small_para_chars,
+    )
+    workers = max(1, min(max_workers, len(batches)))
+    if workers == 1:
+        for batch in batches:
+            run_batch(batch)
+        return segments
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = [pool.submit(run_one, seg) for seg in todo]
+        futures = [pool.submit(run_batch, batch) for batch in batches]
         for future in as_completed(futures):
             future.result()
     return segments
@@ -613,6 +855,9 @@ def translate_job_markdown(
     max_workers: int = 2,
     max_segments: int = 500,
     google_batch_size: int = 40,
+    merge_segments: bool = True,
+    merge_max_chars: int = 3500,
+    merge_small_para_chars: int = 1200,
 ) -> tuple[str, dict[str, Any]]:
     """Translate headings/paragraphs in Markdown; leave Mermaid/fences alone."""
     provider_key = (provider or "llm").strip().lower()
@@ -645,10 +890,19 @@ def translate_job_markdown(
         "segment_count": len(segments),
         "translated_count": 0,
         "errors": 0,
+        "merge_segments": merge_segments,
+        "merge_max_chars": merge_max_chars,
+        "merge_small_para_chars": merge_small_para_chars,
+        "merge_max_chars_effective": None,
     }
     if provider_key == "llm":
         summary["model"] = vllm_model
         summary["vllm_url"] = vllm_url
+        summary["max_tokens"] = max_tokens
+        summary["merge_max_chars_effective"] = resolve_merge_max_chars(
+            merge_max_chars=merge_max_chars,
+            max_tokens=max_tokens,
+        )
     elif provider_key == "google":
         summary["google_target"] = resolve_google_language_code(target_language)
         summary["google_source"] = resolve_google_language_code(source_language)
@@ -656,6 +910,7 @@ def translate_job_markdown(
         summary["baidu_target"] = resolve_baidu_language_code(target_language)
         summary["baidu_source"] = resolve_baidu_language_code(source_language)
         summary["baidu_app_id"] = baidu_app
+        summary["merge_max_chars_effective"] = min(merge_max_chars, 2800)
 
     if not translatable:
         summary["skipped_reason"] = "no_heading_or_paragraph"
@@ -678,8 +933,11 @@ def translate_job_markdown(
             target_language=target_language,
             source_language=source_language,
             timeout=min(timeout, 60),
-            # Free tier is ~1 QPS; force sequential spacing.
             max_workers=1,
+            merge_segments=merge_segments,
+            # Stay under Baidu ~6000 char/request limit (UTF-8).
+            merge_max_chars=min(merge_max_chars, 2800),
+            merge_small_para_chars=merge_small_para_chars,
         )
     else:
         def caller(text: str) -> str:
@@ -693,7 +951,15 @@ def translate_job_markdown(
                 max_tokens=max_tokens,
             )
 
-        translate_segments(segments, caller=caller, max_workers=max_workers)
+        translate_segments(
+            segments,
+            caller=caller,
+            max_workers=max_workers,
+            merge_segments=merge_segments,
+            merge_max_chars=merge_max_chars,
+            max_tokens=max_tokens,
+            merge_small_para_chars=merge_small_para_chars,
+        )
     updated = join_translated_segments(segments)
 
     out_dir = job_dir / "translations"

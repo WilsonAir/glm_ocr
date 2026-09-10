@@ -73,6 +73,12 @@ translation:
   max_tokens: 4096
   max_segments: 500
   google_batch_size: 40
+  # 同类段落（先全部标题、再全部正文）用 <<<OCR_SEG_ID_n>>> 拼批翻译，再拆回。
+  # 实际批大小会再按 max_tokens 收紧，避免超过 LLM 最大输出长度。
+  merge_segments: true
+  merge_max_chars: 3500
+  # ≤ 该长度的段落视为「小段落」，会拼批翻译；更大的段落单独译。
+  merge_small_para_chars: 1200
   # 可选：覆盖默认医学翻译 prompt（需含 <<TARGET_LANGUAGE>> 占位符；仅 llm 用）。
   # prompt: |
 
