@@ -26,7 +26,7 @@
 | 版面检测 | PP-DocLayoutV3 |
 | 正文 / 区域 OCR | `glm-ocr`（vLLM `:18080`） |
 | 流程图 → Mermaid | `qwen3.5-9b`（vLLM `:18003`） |
-| 标题 / 段落翻译 | `llm` / `google` / `baidu`（Key 请求时传入） |
+| 标题 / 段落翻译 | `llm`（`qwen3.5-9b` / `hy-mt2-18` 等，见 YAML `translation.models`）/ `google` / `baidu` |
 
 开关：
 
@@ -35,6 +35,8 @@
 | `enrich_figures` | `true` | Layout 裁出的 `imgs/` 再调 Qwen → Mermaid / Caption |
 | `translate` | `false` | 对段落标题与段落做中文翻译；**不译** Mermaid / 代码块 |
 | `translate_provider` | `llm` | `llm` / `google` / `baidu` |
+| `translate_model` | YAML `default_llm` | 仅 `provider=llm`：选 `translation.models` 下的键 |
+| `ocr_prompt_profile` | YAML `ocr.default_prompt_profile` | 仅 `image_mode=model_only`：OCR prompt 配置键 |
 | `google_api_key` | — | Form/JSON；`provider=google` 时必填，**不落盘** |
 | `baidu_app_id` | — | Form/JSON；百度 APP ID |
 | `baidu_secret_key` | — | Form/JSON；百度密钥 |
@@ -44,6 +46,9 @@
 用 `<<<OCR_SEG_ID_n>>>` 拼包，译完再拆回。拆包失败的段回退逐段翻译。
 批大小受 `merge_max_chars` 与 `max_tokens` 共同约束。  
 配置：`merge_segments` / `merge_max_chars` / `merge_small_para_chars` / `max_tokens`。
+
+本地 LLM 翻译模型在 [`ocr_services_v3.yaml`](../../config/ocr_services_v3.yaml) 的 `translation.models` 配置；
+每个模型可独立设 `vllm_url` / `vllm_model` / 采样参数 / `prompt_profile`（与 figure Qwen **解耦**）。
 
 ---
 
@@ -83,9 +88,24 @@ curl -s '{BASE_URL}/health' | python -m json.tool
     "enabled": true,
     "default_request": false,
     "default_provider": "llm",
+    "default_llm": "qwen3.5-9b",
     "providers": ["llm", "google", "baidu"],
-    "target_language": "Simplified Chinese",
-    "vllm_model": "qwen3.5-9b"
+    "models": {
+      "qwen3.5-9b": {
+        "vllm_url": "http://127.0.0.1:18003/v1/chat/completions",
+        "vllm_model": "qwen3.5-9b"
+      },
+      "hy-mt2-18": {
+        "vllm_url": "http://127.0.0.1:18004/v1/chat/completions",
+        "vllm_model": "hy-mt2-18",
+        "prompt_profile": "hy_mt_en2zh"
+      }
+    },
+    "target_language": "Simplified Chinese"
+  },
+  "ocr": {
+    "default_prompt_profile": "en",
+    "prompt_profiles": ["en"]
   }
 }
 ```
@@ -120,6 +140,8 @@ Content-Type: multipart/form-data
 | `enrich_figures` | Query | 否 | `true` | 是否对 `imgs/` 做 Qwen→Mermaid |
 | `translate` | Query | 否 | `false` | 是否翻译段落标题 / 段落 |
 | `translate_provider` | Query | 否 | `llm` | `llm` / `google` / `baidu` |
+| `translate_model` | Query | 否 | YAML `default_llm` | `llm` 时选 `translation.models` 键，如 `qwen3.5-9b` / `hy-mt2-18` |
+| `ocr_prompt_profile` | Query | 否 | YAML `ocr.default_prompt_profile` | 仅 `model_only`；默认 `en`（`Text Recognition:`） |
 | `google_api_key` | Form | 条件 | — | `translate_provider=google` 时必填 |
 | `baidu_app_id` | Form | 条件 | — | `baidu` 时与 secret 一起必填 |
 | `baidu_secret_key` | Form | 条件 | — | 百度密钥 |
@@ -143,11 +165,23 @@ curl -X POST \
   -F 'file=@/path/to/document.pdf'
 ```
 
-### 用 Qwen 翻译正文
+### 用 Qwen 翻译正文（默认 `translate_model=qwen3.5-9b`）
+
+医学长 prompt + `temperature=0` + 关闭 thinking；走 `:18003`。
 
 ```bash
 curl -X POST \
-  '{BASE_URL}/parse?enrich_figures=true&translate=true&translate_provider=llm' \
+  '{BASE_URL}/parse?enrich_figures=true&translate=true&translate_provider=llm&translate_model=qwen3.5-9b' \
+  -F 'file=@/path/to/document.pdf'
+```
+
+### 用 Hy-MT2 本地翻译（英→中短 prompt）
+
+独立模型 `:18004`，官方风格短指令，采样 `temperature=0.7 top_p=0.6 top_k=20 repetition_penalty=1.05`。
+
+```bash
+curl -X POST \
+  '{BASE_URL}/parse?enrich_figures=true&translate=true&translate_provider=llm&translate_model=hy-mt2-18' \
   -F 'file=@/path/to/document.pdf'
 ```
 
@@ -198,11 +232,13 @@ curl -X POST \
   -F 'file=@/path/to/document.pdf'
 ```
 
-### 局部裁剪图（不做 Layout）
+### 局部裁剪图（不做 Layout，英文直出 OCR）
+
+默认 `ocr_prompt_profile=en` → prompt `Text Recognition:`。
 
 ```bash
 curl -X POST \
-  '{BASE_URL}/parse?image_mode=model_only' \
+  '{BASE_URL}/parse?image_mode=model_only&ocr_prompt_profile=en' \
   -F 'file=@/path/to/crop.png'
 ```
 

@@ -49,6 +49,37 @@ The source is OCR Markdown from oncology guidelines, case notes, or similar.
 ## Source text
 """
 
+# Hunyuan Hy-MT style short prompt (EN→ZH). Keep separate from the medical
+# Qwen template above. Marker line supports packed multi-segment batches.
+HY_MT_EN2ZH_PROMPT = (
+    "将以下文本翻译成中文,注意只需要输出翻译后的结果,不要额外解释。"
+    "若文本含 <<<OCR_SEG_ID_n>>> 标记，请原样保留标记，只翻译标记之间的内容:\n\n"
+)
+
+TRANSLATE_PROMPT_PROFILES: dict[str, str] = {
+    "default": DEFAULT_TRANSLATE_PROMPT,
+    "hy_mt_en2zh": HY_MT_EN2ZH_PROMPT,
+}
+
+
+def resolve_translate_prompt(
+    *,
+    prompt: str | None = None,
+    profile: str | None = None,
+    fallback: str = DEFAULT_TRANSLATE_PROMPT,
+) -> str:
+    """Resolve active translate prompt from custom text or a named profile."""
+    if prompt and str(prompt).strip():
+        return str(prompt).strip()
+    if profile and str(profile).strip():
+        key = str(profile).strip()
+        if key not in TRANSLATE_PROMPT_PROFILES:
+            known = ", ".join(sorted(TRANSLATE_PROMPT_PROFILES))
+            raise ValueError(f"Unknown translate prompt profile {key!r}; known: {known}")
+        return TRANSLATE_PROMPT_PROFILES[key]
+    return fallback
+
+
 # Unique delimiters for packed multi-segment calls. Keep ASCII-only and
 # distinctive so models are less likely to rewrite them.
 SEG_MARK_RE = re.compile(
@@ -158,21 +189,37 @@ def call_vllm_translate(
     target_language: str = "Simplified Chinese",
     timeout: int = 300,
     max_tokens: int = 4096,
+    temperature: float | None = None,
+    top_p: float | None = None,
+    top_k: int | None = None,
+    repetition_penalty: float | None = None,
+    chat_template_kwargs: dict[str, Any] | None = None,
 ) -> str:
-    """Call OpenAI-compatible chat completions for one text segment."""
+    """Call OpenAI-compatible chat completions for one text segment.
+
+    Sampling / chat_template_kwargs are only sent when provided so dedicated
+    MT models (e.g. Hy-MT) are not forced into Qwen thinking defaults.
+    """
     prompt = build_translate_prompt(
         text,
         target_language=target_language,
         prompt_template=prompt_template,
     )
-    payload = {
+    payload: dict[str, Any] = {
         "model": vllm_model,
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": max_tokens,
-        "temperature": 0.0,
-        # Qwen3.5 defaults to hybrid thinking; disable for clean translations.
-        "chat_template_kwargs": {"enable_thinking": False},
     }
+    if temperature is not None:
+        payload["temperature"] = temperature
+    if top_p is not None:
+        payload["top_p"] = top_p
+    if top_k is not None:
+        payload["top_k"] = top_k
+    if repetition_penalty is not None:
+        payload["repetition_penalty"] = repetition_penalty
+    if chat_template_kwargs:
+        payload["chat_template_kwargs"] = chat_template_kwargs
     response = requests.post(vllm_url, json=payload, timeout=timeout)
     response.raise_for_status()
     raw = response.json()
@@ -843,6 +890,7 @@ def translate_job_markdown(
     provider: str = "llm",
     vllm_url: str = "",
     vllm_model: str = "",
+    translate_model: str | None = None,
     google_api_key: str | None = None,
     baidu_app_id: str | None = None,
     baidu_secret_key: str | None = None,
@@ -858,6 +906,11 @@ def translate_job_markdown(
     merge_segments: bool = True,
     merge_max_chars: int = 3500,
     merge_small_para_chars: int = 1200,
+    temperature: float | None = None,
+    top_p: float | None = None,
+    top_k: int | None = None,
+    repetition_penalty: float | None = None,
+    chat_template_kwargs: dict[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Translate headings/paragraphs in Markdown; leave Mermaid/fences alone."""
     provider_key = (provider or "llm").strip().lower()
@@ -898,11 +951,20 @@ def translate_job_markdown(
     if provider_key == "llm":
         summary["model"] = vllm_model
         summary["vllm_url"] = vllm_url
+        summary["translate_model"] = translate_model
         summary["max_tokens"] = max_tokens
         summary["merge_max_chars_effective"] = resolve_merge_max_chars(
             merge_max_chars=merge_max_chars,
             max_tokens=max_tokens,
         )
+        if temperature is not None:
+            summary["temperature"] = temperature
+        if top_p is not None:
+            summary["top_p"] = top_p
+        if top_k is not None:
+            summary["top_k"] = top_k
+        if repetition_penalty is not None:
+            summary["repetition_penalty"] = repetition_penalty
     elif provider_key == "google":
         summary["google_target"] = resolve_google_language_code(target_language)
         summary["google_source"] = resolve_google_language_code(source_language)
@@ -949,6 +1011,11 @@ def translate_job_markdown(
                 target_language=target_language,
                 timeout=timeout,
                 max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                repetition_penalty=repetition_penalty,
+                chat_template_kwargs=chat_template_kwargs,
             )
 
         translate_segments(

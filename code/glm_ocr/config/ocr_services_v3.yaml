@@ -34,6 +34,12 @@ vllm:
   gpu_memory_utilization: 0.6
   max_model_len: 8192
 
+# model_only 路径的 OCR prompt（layout/SDK 路径不受此项影响）。
+ocr:
+  default_prompt_profile: en
+  prompt_profiles:
+    en: "Text Recognition:"
+
 # Layout 完成后，对 imgs/ 中的 chart/image 裁剪再调一次 VL，生成 Mermaid。
 # 流程图专用模型：Qwen3.5-9B（与正文 OCR 的 glm-ocr 分离）。
 # prompt 默认 mermaid_clinical（临床 flowchart → Mermaid）。
@@ -60,12 +66,14 @@ figure_enrichment:
   # fallback_prompt: |
 
 # Layout 完成后，对段落标题 / 段落翻译（Mermaid/代码块不译）。
-# 请求参数 translate 默认 false；translate_provider 默认 llm（Qwen）。
+# 请求参数 translate 默认 false；translate_provider 默认 llm。
+# translate_model 选择 models 下的键（仅 provider=llm）；默认 default_llm。
 # provider=google 时须传入 google_api_key；provider=baidu 时须传入
 # baidu_app_id + baidu_secret_key（或 baidu_api_key=appid:secret）。凭证不落盘。
 translation:
   enabled: true
   default_provider: llm
+  default_llm: qwen3.5-9b
   target_language: Simplified Chinese
   source_language: en
   max_workers: 8
@@ -79,8 +87,33 @@ translation:
   merge_max_chars: 3500
   # ≤ 该长度的段落视为「小段落」，会拼批翻译；更大的段落单独译。
   merge_small_para_chars: 1200
-  # 可选：覆盖默认医学翻译 prompt（需含 <<TARGET_LANGUAGE>> 占位符；仅 llm 用）。
+  # 全局兜底 prompt（仅当模型未指定 prompt / prompt_profile 时；医学长模板）。
   # prompt: |
+  models:
+    qwen3.5-9b:
+      vllm_url: http://127.0.0.1:18003/v1
+      vllm_model: qwen3.5-9b
+      max_tokens: 4096
+      temperature: 0.0
+      # 不写 prompt → 用内置医学长模板 DEFAULT_TRANSLATE_PROMPT
+      chat_template_kwargs:
+        enable_thinking: false
+    hy-mt2-18:
+      # 示例启动：
+      #   vllm serve .../Tencent-Hunyuan--Hy-MT2-1.8B/... \
+      #     --served-model-name hy-mt2-18 --dtype bfloat16 \
+      #     --gpu-memory-utilization 0.2 --max-model-len 32768 \
+      #     --max-num-seqs 16 --max-num-batched-tokens 32768 \
+      #     --trust-remote-code --port 18004
+      vllm_url: http://127.0.0.1:18004/v1
+      vllm_model: hy-mt2-18
+      max_tokens: 4096
+      temperature: 0.7
+      top_p: 0.6
+      top_k: 20
+      repetition_penalty: 1.05
+      # 官方风格短 prompt（英→中），与 Qwen 医学模板分离。
+      prompt_profile: hy_mt_en2zh
 
 # /parse_oss 的 OSS 凭据仅从仓库根目录 .env（gitignore）注入，不要写在本 YAML
 # 或可提交的 deploy/glm-ocr-v3/config.env 中。所需环境变量：

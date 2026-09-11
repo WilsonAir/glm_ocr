@@ -36,7 +36,9 @@ from figure_enrichment import (
 )
 from text_translation import (
     DEFAULT_TRANSLATE_PROMPT,
+    TRANSLATE_PROMPT_PROFILES,
     parse_baidu_credentials,
+    resolve_translate_prompt,
     translate_job_markdown,
 )
 logging.basicConfig(
@@ -96,7 +98,9 @@ _figure_max_tokens = 8192
 _figure_vllm_url = "http://127.0.0.1:18003/v1/chat/completions"
 _figure_vllm_model = "qwen3.5-9b"
 _translation_enabled = True
-_translation_default_provider: Literal["llm", "google"] = "llm"
+_translation_default_provider: Literal["llm", "google", "baidu"] = "llm"
+_translation_default_llm = "qwen3.5-9b"
+_translation_models: dict[str, dict[str, Any]] = {}
 _translation_target_language = "Simplified Chinese"
 _translation_source_language = "en"
 _translation_prompt = DEFAULT_TRANSLATE_PROMPT
@@ -108,6 +112,11 @@ _translation_google_batch_size = 40
 _translation_merge_segments = True
 _translation_merge_max_chars = 3500
 _translation_merge_small_para_chars = 1200
+# Legacy fallback when translation.models is empty (reuse figure VL).
+_translation_fallback_vllm_url = ""
+_translation_fallback_vllm_model = ""
+_ocr_default_prompt_profile = "en"
+_ocr_prompt_profiles: dict[str, str] = {"en": "Text Recognition:"}
 _oss_endpoint = ""
 _oss_access_key_id = ""
 _oss_access_key_secret = ""
@@ -139,10 +148,12 @@ class QueueJob:
     enrich_figures: bool = True
     translate: bool = False
     translate_provider: Literal["llm", "google", "baidu"] = "llm"
+    translate_model: str | None = None
     google_api_key: str | None = None
     baidu_app_id: str | None = None
     baidu_secret_key: str | None = None
     baidu_api_key: str | None = None
+    ocr_prompt_profile: str | None = None
     future: asyncio.Future[dict[str, Any]] | None = None
 
 
@@ -376,6 +387,81 @@ def _normalize_translate_provider(
     return key  # type: ignore[return-value]
 
 
+def _normalize_translate_model(translate_model: str | None) -> str | None:
+    """Return selected models-map key; None means use default_llm / legacy."""
+    if translate_model is None or not str(translate_model).strip():
+        return None
+    return str(translate_model).strip()
+
+
+def _resolve_ocr_prompt(profile: str | None) -> tuple[str, str]:
+    """Return (profile_key, prompt_text) for model_only OCR."""
+    key = (profile or _ocr_default_prompt_profile or "en").strip() or "en"
+    if key not in _ocr_prompt_profiles:
+        known = ", ".join(sorted(_ocr_prompt_profiles))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown ocr_prompt_profile {key!r}; known: {known}",
+        )
+    return key, _ocr_prompt_profiles[key]
+
+
+def _resolve_translation_llm(translate_model: str | None) -> dict[str, Any]:
+    """Pick vLLM URL/model/prompt/sampling from translation.models."""
+    key = _normalize_translate_model(translate_model) or _translation_default_llm
+    if _translation_models:
+        if key not in _translation_models:
+            known = ", ".join(sorted(_translation_models))
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown translate_model {key!r}; known: {known}",
+            )
+        cfg = dict(_translation_models[key])
+    else:
+        # Legacy: reuse figure VL endpoint + global medical prompt.
+        cfg = {
+            "vllm_url": _translation_fallback_vllm_url or _figure_vllm_url,
+            "vllm_model": _translation_fallback_vllm_model or _figure_vllm_model,
+            "max_tokens": _translation_max_tokens,
+            "temperature": 0.0,
+            "chat_template_kwargs": {"enable_thinking": False},
+            "prompt": _translation_prompt,
+        }
+        key = key or "legacy"
+
+    vllm_url = str(cfg.get("vllm_url") or "").strip()
+    vllm_model = str(cfg.get("vllm_model") or key).strip()
+    if not vllm_url:
+        raise HTTPException(
+            status_code=500,
+            detail=f"translate_model {key!r} is missing vllm_url",
+        )
+    prompt = resolve_translate_prompt(
+        prompt=cfg.get("prompt"),
+        profile=cfg.get("prompt_profile"),
+        fallback=_translation_prompt,
+    )
+    max_tokens = int(cfg.get("max_tokens", _translation_max_tokens))
+    chat_kwargs = cfg.get("chat_template_kwargs")
+    if chat_kwargs is not None and not isinstance(chat_kwargs, dict):
+        raise HTTPException(
+            status_code=500,
+            detail=f"translate_model {key!r} chat_template_kwargs must be a mapping",
+        )
+    return {
+        "key": key,
+        "vllm_url": vllm_url,
+        "vllm_model": vllm_model,
+        "prompt_template": prompt,
+        "max_tokens": max_tokens,
+        "temperature": cfg.get("temperature"),
+        "top_p": cfg.get("top_p"),
+        "top_k": cfg.get("top_k"),
+        "repetition_penalty": cfg.get("repetition_penalty"),
+        "chat_template_kwargs": chat_kwargs,
+    }
+
+
 def _validate_translate_options(
     *,
     translate: bool,
@@ -444,28 +530,40 @@ def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
                 job_dir,
                 status="translating",
                 translate_provider=job.translate_provider,
+                translate_model=job.translate_model,
             )
+            llm_cfg: dict[str, Any] = {}
+            if job.translate_provider == "llm":
+                llm_cfg = _resolve_translation_llm(job.translate_model)
             markdown, translation_summary = translate_job_markdown(
                 job_dir,
                 markdown,
                 provider=job.translate_provider,
-                vllm_url=_figure_vllm_url,
-                vllm_model=_figure_vllm_model,
+                vllm_url=str(llm_cfg.get("vllm_url") or ""),
+                vllm_model=str(llm_cfg.get("vllm_model") or ""),
+                translate_model=str(llm_cfg.get("key") or job.translate_model or ""),
                 google_api_key=job.google_api_key,
                 baidu_app_id=job.baidu_app_id,
                 baidu_secret_key=job.baidu_secret_key,
                 baidu_api_key=job.baidu_api_key,
                 target_language=_translation_target_language,
                 source_language=_translation_source_language,
-                prompt_template=_translation_prompt,
+                prompt_template=str(
+                    llm_cfg.get("prompt_template") or _translation_prompt
+                ),
                 timeout=_translation_timeout,
-                max_tokens=_translation_max_tokens,
+                max_tokens=int(llm_cfg.get("max_tokens") or _translation_max_tokens),
                 max_workers=_translation_max_workers,
                 max_segments=_translation_max_segments,
                 google_batch_size=_translation_google_batch_size,
                 merge_segments=_translation_merge_segments,
                 merge_max_chars=_translation_merge_max_chars,
                 merge_small_para_chars=_translation_merge_small_para_chars,
+                temperature=llm_cfg.get("temperature"),
+                top_p=llm_cfg.get("top_p"),
+                top_k=llm_cfg.get("top_k"),
+                repetition_penalty=llm_cfg.get("repetition_penalty"),
+                chat_template_kwargs=llm_cfg.get("chat_template_kwargs"),
             )
             # Drop keys from memory after use.
             _clear_translate_secrets(job)
@@ -480,6 +578,11 @@ def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
             translate=_should_translate(job),
             translate_provider=(
                 job.translate_provider if _should_translate(job) else None
+            ),
+            translate_model=(
+                (translation_summary or {}).get("translate_model")
+                if _should_translate(job) and job.translate_provider == "llm"
+                else None
             ),
             translation=translation_summary,
         )
@@ -503,7 +606,13 @@ def _run_model_only_job(job: QueueJob) -> dict[str, Any]:
         raise RuntimeError("Model-only job has no file data")
     job_dir = _safe_job_dir(job.job_id)
     started = time.perf_counter()
-    _update_metadata(job_dir, status="running", started_at=_beijing_now())
+    profile_key, ocr_prompt = _resolve_ocr_prompt(job.ocr_prompt_profile)
+    _update_metadata(
+        job_dir,
+        status="running",
+        started_at=_beijing_now(),
+        ocr_prompt_profile=profile_key,
+    )
     suffix = Path(job.filename).suffix.lower()
     mime = MIME_BY_SUFFIX.get(suffix, "image/png")
     image_url = f"data:{mime};base64,{base64.b64encode(job.data).decode('ascii')}"
@@ -513,7 +622,7 @@ def _run_model_only_job(job: QueueJob) -> dict[str, Any]:
             "role": "user",
             "content": [
                 {"type": "image_url", "image_url": {"url": image_url}},
-                {"type": "text", "text": "Text Recognition:"},
+                {"type": "text", "text": ocr_prompt},
             ],
         }],
         "max_tokens": _vllm_max_tokens,
@@ -535,6 +644,7 @@ def _run_model_only_job(job: QueueJob) -> dict[str, Any]:
             chars=len(markdown),
             elapsed_sec=round(time.perf_counter() - started, 2),
             finished_at=_beijing_now(),
+            ocr_prompt_profile=profile_key,
         )
         return _complete_response(job_dir, metadata, markdown)
     except Exception as exc:
@@ -710,10 +820,12 @@ async def _enqueue(
     enrich_figures: bool,
     translate: bool,
     translate_provider: Literal["llm", "google", "baidu"],
+    translate_model: str | None,
     google_api_key: str | None,
     baidu_app_id: str | None = None,
     baidu_secret_key: str | None = None,
     baidu_api_key: str | None = None,
+    ocr_prompt_profile: str | None = None,
 ) -> JSONResponse:
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename")
@@ -740,6 +852,14 @@ async def _enqueue(
     )
     provider = _normalize_translate_provider(translate_provider)
     do_translate = bool(translate) if mode == "layout" else False
+    model_key = _normalize_translate_model(translate_model)
+    if do_translate and provider == "llm":
+        # Validate early so bad model keys fail before queueing.
+        resolved = _resolve_translation_llm(model_key)
+        model_key = str(resolved["key"])
+    ocr_profile_key: str | None = None
+    if mode == "model_only":
+        ocr_profile_key, _ = _resolve_ocr_prompt(ocr_prompt_profile)
     _validate_translate_options(
         translate=do_translate,
         mode=mode,
@@ -785,6 +905,8 @@ async def _enqueue(
         "enrich_figures": enrich_figures if mode == "layout" else False,
         "translate": do_translate,
         "translate_provider": provider if do_translate else None,
+        "translate_model": model_key if do_translate and provider == "llm" else None,
+        "ocr_prompt_profile": ocr_profile_key if mode == "model_only" else None,
         "created_at": created,
         "output_dir": str(job_dir),
     })
@@ -799,10 +921,12 @@ async def _enqueue(
         enrich_figures=enrich_figures if mode == "layout" else False,
         translate=do_translate,
         translate_provider=provider,
+        translate_model=model_key if do_translate and provider == "llm" else None,
         google_api_key=google_api_key if do_translate and provider == "google" else None,
         baidu_app_id=baidu_app_id if do_translate and provider == "baidu" else None,
         baidu_secret_key=baidu_secret_key if do_translate and provider == "baidu" else None,
         baidu_api_key=baidu_api_key if do_translate and provider == "baidu" else None,
+        ocr_prompt_profile=ocr_profile_key if mode == "model_only" else None,
         future=future,
     )
     try:
@@ -878,7 +1002,19 @@ async def health() -> dict[str, Any]:
             "enabled": _translation_enabled,
             "default_request": False,
             "default_provider": _translation_default_provider,
+            "default_llm": _translation_default_llm,
             "providers": ["llm", "google", "baidu"],
+            "models": {
+                name: {
+                    "vllm_url": cfg.get("vllm_url"),
+                    "vllm_model": cfg.get("vllm_model"),
+                    "max_tokens": cfg.get("max_tokens"),
+                    "prompt_profile": cfg.get("prompt_profile"),
+                    "has_custom_prompt": bool(cfg.get("prompt")),
+                }
+                for name, cfg in sorted(_translation_models.items())
+            },
+            "prompt_profiles": sorted(TRANSLATE_PROMPT_PROFILES),
             "target_language": _translation_target_language,
             "source_language": _translation_source_language,
             "max_workers": _translation_max_workers,
@@ -886,10 +1022,12 @@ async def health() -> dict[str, Any]:
             "merge_segments": _translation_merge_segments,
             "merge_max_chars": _translation_merge_max_chars,
             "merge_small_para_chars": _translation_merge_small_para_chars,
-            "vllm_url": _figure_vllm_url,
-            "vllm_model": _figure_vllm_model,
             "google_api": "Cloud Translation Basic v2 (key passed per request)",
             "baidu_api": "Fanyi open platform vip/translate (appid+secret per request)",
+        },
+        "ocr": {
+            "default_prompt_profile": _ocr_default_prompt_profile,
+            "prompt_profiles": sorted(_ocr_prompt_profiles),
         },
         "queues": {
             "pdf_layout": _queue_snapshot(
@@ -965,6 +1103,14 @@ async def parse_document(
         "llm",
         description="Translation backend: llm | google | baidu",
     ),
+    translate_model: str | None = Query(
+        None,
+        description="When provider=llm, key under translation.models (default: default_llm)",
+    ),
+    ocr_prompt_profile: str | None = Query(
+        None,
+        description="model_only OCR prompt profile (default: ocr.default_prompt_profile)",
+    ),
     google_api_key: str | None = Form(
         None,
         description="Google Cloud Translation API key; required when translate_provider=google",
@@ -989,10 +1135,12 @@ async def parse_document(
         enrich_figures=enrich_figures,
         translate=translate,
         translate_provider=translate_provider,
+        translate_model=translate_model,
         google_api_key=google_api_key,
         baidu_app_id=baidu_app_id,
         baidu_secret_key=baidu_secret_key,
         baidu_api_key=baidu_api_key,
+        ocr_prompt_profile=ocr_prompt_profile,
     )
 
 
@@ -1011,6 +1159,14 @@ async def parse_image(
     translate_provider: Literal["llm", "google", "baidu"] = Query(
         "llm",
         description="Translation backend: llm | google | baidu",
+    ),
+    translate_model: str | None = Query(
+        None,
+        description="When provider=llm, key under translation.models (default: default_llm)",
+    ),
+    ocr_prompt_profile: str | None = Query(
+        None,
+        description="model_only OCR prompt profile (default: ocr.default_prompt_profile)",
     ),
     google_api_key: str | None = Form(
         None,
@@ -1036,10 +1192,12 @@ async def parse_image(
         enrich_figures=enrich_figures,
         translate=translate,
         translate_provider=translate_provider,
+        translate_model=translate_model,
         google_api_key=google_api_key,
         baidu_app_id=baidu_app_id,
         baidu_secret_key=baidu_secret_key,
         baidu_api_key=baidu_api_key,
+        ocr_prompt_profile=ocr_prompt_profile,
     )
 
 
@@ -1070,6 +1228,8 @@ class OssTaskRequest(BaseModel):
     enrich_figures: bool = True
     translate: bool = False
     translate_provider: Literal["llm", "google", "baidu"] = "llm"
+    translate_model: str | None = None
+    ocr_prompt_profile: str | None = None
     google_api_key: str | None = None
     baidu_app_id: str | None = None
     baidu_secret_key: str | None = None
@@ -1102,6 +1262,13 @@ async def parse_oss_task(req: OssTaskRequest) -> JSONResponse:
     enrich_figures = req.enrich_figures if mode == "layout" else False
     translate = req.translate if mode == "layout" else False
     provider = _normalize_translate_provider(req.translate_provider)
+    model_key = _normalize_translate_model(req.translate_model)
+    if translate and provider == "llm":
+        resolved = _resolve_translation_llm(model_key)
+        model_key = str(resolved["key"])
+    ocr_profile_key: str | None = None
+    if mode == "model_only":
+        ocr_profile_key, _ = _resolve_ocr_prompt(req.ocr_prompt_profile)
     _validate_translate_options(
         translate=translate,
         mode=mode,
@@ -1137,6 +1304,8 @@ async def parse_oss_task(req: OssTaskRequest) -> JSONResponse:
         "enrich_figures": enrich_figures,
         "translate": translate,
         "translate_provider": provider if translate else None,
+        "translate_model": model_key if translate and provider == "llm" else None,
+        "ocr_prompt_profile": ocr_profile_key if mode == "model_only" else None,
         "attempt": req.attempt,
         "oss_source": req.oss_path,
         "created_at": created,
@@ -1155,11 +1324,14 @@ async def parse_oss_task(req: OssTaskRequest) -> JSONResponse:
         enrich_figures=enrich_figures,
         translate=translate,
         translate_provider=provider,
+        translate_model=model_key if translate and provider == "llm" else None,
         google_api_key=req.google_api_key if translate and provider == "google" else None,
         baidu_app_id=req.baidu_app_id if translate and provider == "baidu" else None,
-        baidu_secret_key=req.baidu_secret_key if translate and provider == "baidu" else None,
+        baidu_secret_key=(
+            req.baidu_secret_key if translate and provider == "baidu" else None
+        ),
         baidu_api_key=req.baidu_api_key if translate and provider == "baidu" else None,
-        future=None,
+        ocr_prompt_profile=ocr_profile_key if mode == "model_only" else None,
     )
     try:
         queue.put_nowait(job)
@@ -1239,11 +1411,14 @@ def main() -> None:
     global _figure_max_workers, _figure_timeout, _figure_max_tokens
     global _figure_vllm_url, _figure_vllm_model
     global _translation_enabled, _translation_default_provider
+    global _translation_default_llm, _translation_models
+    global _translation_fallback_vllm_url, _translation_fallback_vllm_model
     global _translation_target_language, _translation_source_language, _translation_prompt
     global _translation_max_workers, _translation_timeout, _translation_max_tokens
     global _translation_max_segments, _translation_google_batch_size
     global _translation_merge_segments, _translation_merge_max_chars
     global _translation_merge_small_para_chars
+    global _ocr_default_prompt_profile, _ocr_prompt_profiles
     global _oss_endpoint, _oss_access_key_id, _oss_access_key_secret
     global _oss_bucket_name, _oss_prefix, _oss_signed_url_expires
     service_config_path = Path(args.service_config).expanduser().resolve()
@@ -1255,6 +1430,7 @@ def main() -> None:
     vllm = service_config.get("vllm", {})
     figure_cfg = service_config.get("figure_enrichment", {})
     translation_cfg = service_config.get("translation", {})
+    ocr_cfg = service_config.get("ocr", {})
 
     def config_path(value: str | None, fallback: Path) -> Path:
         path = Path(value) if value else fallback
@@ -1340,7 +1516,7 @@ def main() -> None:
     )
     _figure_vllm_model = str(figure_cfg.get("vllm_model", "qwen3.5-9b"))
 
-    # Translation reuses the figure VL endpoint (same Qwen as Mermaid).
+    # Translation: multi local vLLM models under translation.models.
     # Master switch defaults on; per-request `translate` defaults off.
     _translation_enabled = bool(translation_cfg.get("enabled", True))
     default_provider = str(
@@ -1370,6 +1546,59 @@ def main() -> None:
     _translation_merge_small_para_chars = int(
         translation_cfg.get("merge_small_para_chars", 1200)
     )
+    _translation_fallback_vllm_url = _figure_vllm_url
+    _translation_fallback_vllm_model = _figure_vllm_model
+
+    models_raw = translation_cfg.get("models") or {}
+    loaded_models: dict[str, dict[str, Any]] = {}
+    if isinstance(models_raw, dict):
+        for name, raw in models_raw.items():
+            if not isinstance(raw, dict):
+                raise ValueError(f"translation.models.{name} must be a mapping")
+            entry = dict(raw)
+            if entry.get("vllm_url"):
+                entry["vllm_url"] = normalize_chat_completions_url(
+                    str(entry["vllm_url"])
+                )
+            # Validate prompt_profile early.
+            if entry.get("prompt_profile") or entry.get("prompt"):
+                resolve_translate_prompt(
+                    prompt=entry.get("prompt"),
+                    profile=entry.get("prompt_profile"),
+                    fallback=_translation_prompt,
+                )
+            loaded_models[str(name).strip()] = entry
+    _translation_models = loaded_models
+    default_llm = str(
+        translation_cfg.get("default_llm")
+        or (next(iter(loaded_models)) if loaded_models else "qwen3.5-9b")
+    ).strip()
+    if loaded_models and default_llm not in loaded_models:
+        raise ValueError(
+            f"translation.default_llm {default_llm!r} not in models: "
+            f"{', '.join(sorted(loaded_models))}"
+        )
+    _translation_default_llm = default_llm
+
+    # model_only OCR prompt profiles (English transcription by default).
+    profiles_raw = ocr_cfg.get("prompt_profiles") or {"en": "Text Recognition:"}
+    if not isinstance(profiles_raw, dict) or not profiles_raw:
+        raise ValueError("ocr.prompt_profiles must be a non-empty mapping")
+    _ocr_prompt_profiles = {
+        str(k).strip(): str(v).strip()
+        for k, v in profiles_raw.items()
+        if str(k).strip() and str(v).strip()
+    }
+    if not _ocr_prompt_profiles:
+        raise ValueError("ocr.prompt_profiles resolved empty")
+    _ocr_default_prompt_profile = str(
+        ocr_cfg.get("default_prompt_profile", "en")
+    ).strip() or "en"
+    if _ocr_default_prompt_profile not in _ocr_prompt_profiles:
+        raise ValueError(
+            f"ocr.default_prompt_profile {_ocr_default_prompt_profile!r} not in "
+            f"prompt_profiles: {', '.join(sorted(_ocr_prompt_profiles))}"
+        )
 
     _oss_endpoint = os.environ.get("OSS_ENDPOINT", "")
     _oss_access_key_id = os.environ.get("OSS_ACCESS_KEY_ID", "")
@@ -1395,7 +1624,7 @@ def main() -> None:
     logger.info(
         "Starting GLM-OCR v3 on %s:%d (output=%s, figure_enrichment=%s, "
         "prompt_profile=%s, fallback_profile=%s, figure_vl=%s/%s, "
-        "translation=%s/%s/%s)",
+        "translation=%s/%s/%s default_llm=%s models=%s ocr_profile=%s)",
         host,
         port,
         _output_root,
@@ -1407,6 +1636,9 @@ def main() -> None:
         _translation_enabled,
         _translation_default_provider,
         _translation_target_language,
+        _translation_default_llm,
+        ",".join(sorted(_translation_models)) or "(legacy-figure)",
+        _ocr_default_prompt_profile,
     )
     uvicorn.run(app, host=host, port=port, log_level="info")
 
