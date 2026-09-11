@@ -68,7 +68,7 @@ translation:
   default_provider: llm
   target_language: Simplified Chinese
   source_language: en
-  max_workers: 4
+  max_workers: 8
   timeout: 300
   max_tokens: 4096
   max_segments: 2000
