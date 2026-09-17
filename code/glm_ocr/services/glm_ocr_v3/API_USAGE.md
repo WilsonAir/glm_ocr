@@ -34,7 +34,7 @@
 |---|---|---|
 | `enrich_figures` | `true` | Layout 裁出的 `imgs/` 再调 Qwen → Mermaid / Caption |
 | `translate` | `false` | 对段落标题与段落做中文翻译；**不译** Mermaid / 代码块 |
-| `ocr_engine` | YAML `ocr.default_engine`（默认 `glm`） | `glm` = 本机 GlmOcr；`paddle` = HTTP 转发到 PaddleOCR 服务（`:18093`） |
+| `ocr_engine` | YAML `ocr.default_engine`（默认 `glm`） | 版面流程不变；只切换底层 OCR vLLM：`glm`=`:18080/glm-ocr`，`paddle`=`:18081/PaddleOCR-VL-1.6` |
 | `translate_provider` | `llm` | `llm` / `google` / `baidu` |
 | `translate_model` | YAML `default_llm` | 仅 `provider=llm`：选 `translation.models` 下的键 |
 | `ocr_prompt_profile` | YAML `ocr.default_prompt_profile` | 仅 `image_mode=model_only`：OCR prompt 配置键 |
@@ -138,7 +138,7 @@ Content-Type: multipart/form-data
 |---|---|---:|---|---|
 | `file` | Form | 是 | — | PDF 或图片 |
 | `image_mode` | Query | 否 | `auto` | `auto` / `layout` / `model_only` |
-| `ocr_engine` | Query | 否 | `glm` | `glm` / `paddle`；`paddle` 需本机 PaddleOCR 服务已启动 |
+| `ocr_engine` | Query | 否 | `glm` | `glm` / `paddle`；`paddle` 需本机 `:18081` PaddleOCR-VL vLLM 已启动 |
 | `enrich_figures` | Query | 否 | `true` | 是否对 `imgs/` 做 Qwen→Mermaid |
 | `translate` | Query | 否 | `false` | 是否翻译段落标题 / 段落 |
 | `translate_provider` | Query | 否 | `llm` | `llm` / `google` / `baidu` |
@@ -167,13 +167,14 @@ curl -X POST \
   -F 'file=@/path/to/document.pdf'
 ```
 
-### 用 PaddleOCR 做正文/版面解析（仍走 v3 接口）
+### 用 PaddleOCR-VL 做区域 OCR（版面流程不变）
 
-需先启动 Paddle 服务（`:18093`）。`translate` 仍可在 v3 侧执行；`enrich_figures` 依赖 `imgs/`，Paddle 路径通常无裁剪图，可能为空操作。
+仍走 GlmOcr + PP-DocLayout；仅把区域 OCR 的 vLLM 切到 `:18081` / `PaddleOCR-VL-1.6`。
+需先启动 PaddleOCR-VL vLLM（不是 `:18093` 解析服务）。
 
 ```bash
 curl -X POST \
-  '{BASE_URL}/parse?ocr_engine=paddle&enrich_figures=false&translate=true&translate_provider=llm&translate_model=hy-mt2-18' \
+  '{BASE_URL}/parse?ocr_engine=paddle&enrich_figures=true&translate=true' \
   -F 'file=@/path/to/document.pdf'
 ```
 

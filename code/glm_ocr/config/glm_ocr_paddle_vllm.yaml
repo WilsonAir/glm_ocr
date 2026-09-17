@@ -1,0 +1,119 @@
+# Same layout/pipeline as glm_ocr.yaml; only OCR vLLM points to PaddleOCR-VL.
+# Used when v3 request sets ocr_engine=paddle.
+# Layout detection: PP-DocLayoutV3 (local) — unchanged from glm path.
+
+logging:
+  level: WARNING
+
+pipeline:
+  maas:
+    enabled: false
+
+  # Maximum parallel region OCR requests for the single active layout job.
+  max_workers: 4
+
+  ocr_api:
+    api_host: 127.0.0.1
+    api_port: 18081
+    model: PaddleOCR-VL-1.6
+    api_mode: openai
+    api_path: /v1/chat/completions
+    verify_ssl: false
+    connect_timeout: 30
+    request_timeout: 300
+    # Kept for compatibility with older glmocr releases.
+    max_workers: 4
+
+  page_loader:
+    max_tokens: 2048
+    pdf_dpi: 200
+    pdf_max_pages: null
+
+  result_formatter:
+    output_format: markdown
+    label_visualization_mapping:
+      table:
+        - table
+      formula:
+        - display_formula
+        - inline_formula
+      image:
+        - chart
+        - image
+      text:
+        - abstract
+        - algorithm
+        - content
+        - doc_title
+        - figure_title
+        - paragraph_title
+        - reference_content
+        - text
+        - vertical_text
+        - vision_footnote
+        - seal
+        - formula_number
+
+  layout:
+    model_dir: /data/wilson_2/de/models/PaddlePaddle/PP-DocLayoutV3_safetensors
+    batch_size: 1
+    workers: 1
+    cuda_visible_devices: "1"
+    device: cuda:1
+    label_task_mapping:
+      text:
+        - abstract
+        - algorithm
+        - content
+        - doc_title
+        - figure_title
+        - paragraph_title
+        - reference_content
+        - text
+        - vertical_text
+        - vision_footnote
+        - seal
+        - formula_number
+      table:
+        - table
+      formula:
+        - display_formula
+        - inline_formula
+      skip:
+        - chart
+        - image
+      abandon:
+        - header
+        - footer
+        - number
+        - footnote
+        - aside_text
+        - reference
+        - footer_image
+        - header_image
+    id2label:
+      0: abstract
+      1: algorithm
+      2: aside_text
+      3: chart
+      4: content
+      5: display_formula
+      6: doc_title
+      7: figure_title
+      8: footer
+      9: footer_image
+      10: footnote
+      11: formula_number
+      12: header
+      13: header_image
+      14: image
+      15: inline_formula
+      16: number
+      17: paragraph_title
+      18: reference
+      19: reference_content
+      20: seal
+      21: table
+      22: text
+      23: vertical_text
+      24: vision_footnote

@@ -118,8 +118,9 @@ _translation_fallback_vllm_model = ""
 _ocr_default_prompt_profile = "en"
 _ocr_prompt_profiles: dict[str, str] = {"en": "Text Recognition:"}
 _ocr_default_engine: Literal["glm", "paddle"] = "glm"
-_paddle_ocr_base_url = "http://127.0.0.1:18093"
-_paddle_ocr_timeout = 600
+_paddle_sdk_config_path = GLM_OCR_ROOT / "config" / "glm_ocr_paddle_vllm.yaml"
+_paddle_vllm_url = "http://127.0.0.1:18081/v1/chat/completions"
+_paddle_vllm_model = "PaddleOCR-VL-1.6"
 _oss_endpoint = ""
 _oss_access_key_id = ""
 _oss_access_key_secret = ""
@@ -161,25 +162,30 @@ class QueueJob:
     future: asyncio.Future[dict[str, Any]] | None = None
 
 
-def _get_parser(parser_key: str) -> Any:
-    """Lazily construct one official SDK parser for each layout worker."""
-    parser = _layout_parsers.get(parser_key)
+def _get_parser(parser_key: str, *, ocr_engine: Literal["glm", "paddle"] = "glm") -> Any:
+    """Lazily construct one official SDK parser per worker + OCR vLLM backend."""
+    cache_key = f"{parser_key}:{ocr_engine}"
+    parser = _layout_parsers.get(cache_key)
     if parser is not None:
         return parser
 
     with _parser_init_lock:
-        parser = _layout_parsers.get(parser_key)
+        parser = _layout_parsers.get(cache_key)
         if parser is not None:
             return parser
 
         from glmocr import GlmOcr
 
-        config_path = _parser_config_path.expanduser().resolve()
+        if ocr_engine == "paddle":
+            config_path = _paddle_sdk_config_path.expanduser().resolve()
+        else:
+            config_path = _parser_config_path.expanduser().resolve()
         if not config_path.is_file():
             raise FileNotFoundError(f"GLM-OCR config not found: {config_path}")
 
         logger.info(
-            "Initializing GLM-OCR parser (config=%s, device=%s)",
+            "Initializing GLM-OCR parser (engine=%s, config=%s, device=%s)",
+            ocr_engine,
             config_path,
             _parser_layout_device or "default",
         )
@@ -188,8 +194,8 @@ def _get_parser(parser_key: str) -> Any:
             layout_device=_parser_layout_device,
             mode="selfhosted",
         )
-        _layout_parsers[parser_key] = parser
-        logger.info("GLM-OCR layout parser ready: %s", parser_key)
+        _layout_parsers[cache_key] = parser
+        logger.info("GLM-OCR layout parser ready: %s", cache_key)
         return parser
 
 
@@ -385,70 +391,13 @@ def _normalize_ocr_engine(engine: str | None) -> Literal["glm", "paddle"]:
     return key  # type: ignore[return-value]
 
 
-def _call_paddle_parse(
-    *,
-    data: bytes,
-    filename: str,
-    image_mode: Literal["auto", "layout", "model_only"],
-) -> dict[str, Any]:
-    """Proxy one sync parse to the standalone PaddleOCR service."""
-    base = _paddle_ocr_base_url.rstrip("/")
-    url = f"{base}/parse"
-    mime = MIME_BY_SUFFIX.get(Path(filename).suffix.lower(), "application/octet-stream")
-    if filename.lower().endswith(".pdf"):
-        mime = "application/pdf"
-    try:
-        response = requests.post(
-            url,
-            params={"image_mode": image_mode},
-            files={"file": (filename, data, mime)},
-            timeout=_paddle_ocr_timeout,
-        )
-    except requests.RequestException as exc:
-        raise RuntimeError(
-            f"PaddleOCR service unreachable at {url}: {exc}"
-        ) from exc
-    if response.status_code == 429:
-        raise RuntimeError(
-            f"PaddleOCR queue is full ({url}); retry later"
-        )
-    if response.status_code >= 400:
-        detail = response.text[:500]
-        try:
-            detail = response.json()
-        except Exception:  # noqa: BLE001
-            pass
-        raise RuntimeError(
-            f"PaddleOCR parse failed HTTP {response.status_code}: {detail}"
-        )
-    payload = response.json()
-    if not isinstance(payload, dict):
-        raise RuntimeError("PaddleOCR parse returned non-object JSON")
-    return payload
-
-
-def _materialize_paddle_markdown(job_dir: Path, payload: dict[str, Any]) -> str:
-    """Write paddle text into the v3 job directory; return markdown."""
-    markdown = str(payload.get("text") or "")
-    (job_dir / "result.md").write_text(
-        markdown if markdown.endswith("\n") else markdown + "\n",
-        encoding="utf-8",
-    )
-    (job_dir / "paddle_parse.json").write_text(
-        json.dumps(
-            {
-                "job_id": payload.get("job_id"),
-                "chars": payload.get("chars"),
-                "elapsed_sec": payload.get("elapsed_sec"),
-                "artifacts": payload.get("artifacts"),
-                "queue": payload.get("queue"),
-            },
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    return markdown
+def _resolve_model_only_vllm(
+    ocr_engine: Literal["glm", "paddle"],
+) -> tuple[str, str]:
+    """Return (vllm_url, model) for model_only path."""
+    if ocr_engine == "paddle":
+        return _paddle_vllm_url, _paddle_vllm_model
+    return _vllm_url, _vllm_model
 
 
 def _should_translate(job: QueueJob) -> bool:
@@ -590,18 +539,10 @@ def _run_layout_job(job: QueueJob, *, parser_key: str) -> dict[str, Any]:
         ocr_engine=job.ocr_engine,
     )
     try:
-        if job.ocr_engine == "paddle":
-            paddle_payload = _call_paddle_parse(
-                data=job.data,
-                filename=job.filename,
-                image_mode="layout",
-            )
-            markdown = _materialize_paddle_markdown(job_dir, paddle_payload)
-        else:
-            result = _get_parser(parser_key).parse(job.data)
-            # Official SDK saves Markdown/JSON, imgs/, and layout_vis/ when present.
-            result.save(output_dir=str(job_dir))
-            markdown = _extract_markdown(result)
+        result = _get_parser(parser_key, ocr_engine=job.ocr_engine).parse(job.data)
+        # Official SDK saves Markdown/JSON, imgs/, and layout_vis/ when present.
+        result.save(output_dir=str(job_dir))
+        markdown = _extract_markdown(result)
         figure_summary: dict[str, Any] | None = None
         if _should_enrich_figures(job):
             _update_metadata(job_dir, status="enriching_figures")
@@ -709,30 +650,12 @@ def _run_model_only_job(job: QueueJob) -> dict[str, Any]:
         ocr_engine=job.ocr_engine,
     )
     try:
-        if job.ocr_engine == "paddle":
-            # Paddle element-level path; ocr_prompt_profile is glm-only.
-            paddle_payload = _call_paddle_parse(
-                data=job.data,
-                filename=job.filename,
-                image_mode="model_only",
-            )
-            markdown = _materialize_paddle_markdown(job_dir, paddle_payload)
-            metadata = _update_metadata(
-                job_dir,
-                status="completed",
-                chars=len(markdown),
-                elapsed_sec=round(time.perf_counter() - started, 2),
-                finished_at=_beijing_now(),
-                ocr_prompt_profile=profile_key,
-                ocr_engine=job.ocr_engine,
-            )
-            return _complete_response(job_dir, metadata, markdown)
-
+        vllm_url, vllm_model = _resolve_model_only_vllm(job.ocr_engine)
         suffix = Path(job.filename).suffix.lower()
         mime = MIME_BY_SUFFIX.get(suffix, "image/png")
         image_url = f"data:{mime};base64,{base64.b64encode(job.data).decode('ascii')}"
         payload = {
-            "model": _vllm_model,
+            "model": vllm_model,
             "messages": [{
                 "role": "user",
                 "content": [
@@ -743,7 +666,7 @@ def _run_model_only_job(job: QueueJob) -> dict[str, Any]:
             "max_tokens": _vllm_max_tokens,
             "temperature": 0.0,
         }
-        response = requests.post(_vllm_url, json=payload, timeout=_vllm_timeout)
+        response = requests.post(vllm_url, json=payload, timeout=_vllm_timeout)
         response.raise_for_status()
         raw_result = response.json()
         markdown = raw_result["choices"][0]["message"]["content"]
@@ -760,6 +683,8 @@ def _run_model_only_job(job: QueueJob) -> dict[str, Any]:
             finished_at=_beijing_now(),
             ocr_prompt_profile=profile_key,
             ocr_engine=job.ocr_engine,
+            vllm_model=vllm_model,
+            vllm_url=vllm_url,
         )
         return _complete_response(job_dir, metadata, markdown)
     except Exception as exc:
@@ -1148,10 +1073,17 @@ async def health() -> dict[str, Any]:
             "default_prompt_profile": _ocr_default_prompt_profile,
             "prompt_profiles": sorted(_ocr_prompt_profiles),
             "default_engine": _ocr_default_engine,
-            "engines": ["glm", "paddle"],
-            "paddle_ocr": {
-                "base_url": _paddle_ocr_base_url,
-                "timeout": _paddle_ocr_timeout,
+            "engines": {
+                "glm": {
+                    "sdk_config": str(_parser_config_path),
+                    "vllm_url": _vllm_url,
+                    "vllm_model": _vllm_model,
+                },
+                "paddle": {
+                    "sdk_config": str(_paddle_sdk_config_path),
+                    "vllm_url": _paddle_vllm_url,
+                    "vllm_model": _paddle_vllm_model,
+                },
             },
         },
         "queues": {
@@ -1238,7 +1170,10 @@ async def parse_document(
     ),
     ocr_engine: Literal["glm", "paddle"] | None = Query(
         None,
-        description="OCR backend: glm (GlmOcr) | paddle (HTTP to PaddleOCR service)",
+        description=(
+            "OCR vLLM backend behind the same GlmOcr layout pipeline: "
+            "glm (:18080/glm-ocr) | paddle (:18081/PaddleOCR-VL-1.6)"
+        ),
     ),
     google_api_key: str | None = Form(
         None,
@@ -1300,7 +1235,10 @@ async def parse_image(
     ),
     ocr_engine: Literal["glm", "paddle"] | None = Query(
         None,
-        description="OCR backend: glm (GlmOcr) | paddle (HTTP to PaddleOCR service)",
+        description=(
+            "OCR vLLM backend behind the same GlmOcr layout pipeline: "
+            "glm (:18080/glm-ocr) | paddle (:18081/PaddleOCR-VL-1.6)"
+        ),
     ),
     google_api_key: str | None = Form(
         None,
@@ -1558,7 +1496,8 @@ def main() -> None:
     global _translation_merge_segments, _translation_merge_max_chars
     global _translation_merge_small_para_chars
     global _ocr_default_prompt_profile, _ocr_prompt_profiles
-    global _ocr_default_engine, _paddle_ocr_base_url, _paddle_ocr_timeout
+    global _ocr_default_engine, _paddle_sdk_config_path
+    global _paddle_vllm_url, _paddle_vllm_model
     global _oss_endpoint, _oss_access_key_id, _oss_access_key_secret
     global _oss_bucket_name, _oss_prefix, _oss_signed_url_expires
     service_config_path = Path(args.service_config).expanduser().resolve()
@@ -1571,7 +1510,6 @@ def main() -> None:
     figure_cfg = service_config.get("figure_enrichment", {})
     translation_cfg = service_config.get("translation", {})
     ocr_cfg = service_config.get("ocr", {})
-    paddle_cfg = service_config.get("paddle_ocr", {})
 
     def config_path(value: str | None, fallback: Path) -> Path:
         path = Path(value) if value else fallback
@@ -1744,10 +1682,25 @@ def main() -> None:
     if engine_raw not in {"glm", "paddle"}:
         raise ValueError("ocr.default_engine must be 'glm' or 'paddle'")
     _ocr_default_engine = engine_raw  # type: ignore[assignment]
-    _paddle_ocr_base_url = str(
-        paddle_cfg.get("base_url", "http://127.0.0.1:18093")
-    ).strip().rstrip("/") or "http://127.0.0.1:18093"
-    _paddle_ocr_timeout = int(paddle_cfg.get("timeout", 600))
+    engines_cfg = ocr_cfg.get("engines") or {}
+    paddle_engine = {}
+    if isinstance(engines_cfg, dict):
+        paddle_engine = engines_cfg.get("paddle") or {}
+    if not isinstance(paddle_engine, dict):
+        paddle_engine = {}
+    paddle_sdk = paddle_engine.get("sdk_config") or (
+        "code/glm_ocr/config/glm_ocr_paddle_vllm.yaml"
+    )
+    _paddle_sdk_config_path = config_path(str(paddle_sdk), _paddle_sdk_config_path)
+    _paddle_vllm_url = str(
+        paddle_engine.get(
+            "vllm_url",
+            "http://127.0.0.1:18081/v1/chat/completions",
+        )
+    ).strip()
+    _paddle_vllm_model = str(
+        paddle_engine.get("vllm_model", "PaddleOCR-VL-1.6")
+    ).strip() or "PaddleOCR-VL-1.6"
 
     _oss_endpoint = os.environ.get("OSS_ENDPOINT", "")
     _oss_access_key_id = os.environ.get("OSS_ACCESS_KEY_ID", "")
@@ -1773,7 +1726,7 @@ def main() -> None:
     logger.info(
         "Starting GLM-OCR v3 on %s:%d (output=%s, figure_enrichment=%s, "
         "prompt_profile=%s, fallback_profile=%s, figure_vl=%s/%s, "
-        "translation=%s/%s/%s default_llm=%s models=%s ocr_engine=%s paddle=%s)",
+        "translation=%s/%s/%s default_llm=%s models=%s ocr_engine=%s paddle_vllm=%s/%s)",
         host,
         port,
         _output_root,
@@ -1788,7 +1741,8 @@ def main() -> None:
         _translation_default_llm,
         ",".join(sorted(_translation_models)) or "(legacy-figure)",
         _ocr_default_engine,
-        _paddle_ocr_base_url,
+        _paddle_vllm_model,
+        _paddle_vllm_url,
     )
     uvicorn.run(app, host=host, port=port, log_level="info")
 
