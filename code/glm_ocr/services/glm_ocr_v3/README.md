@@ -4,6 +4,7 @@ GLM-OCR v3 在 [v2](../glm_ocr_v2/README.md) 队列与解析能力之上，增�
 
 - Layout 识别出的 `imgs/`（`image` / `chart` 区域）再调用 VL → Mermaid / Caption（`enrich_figures`，**默认开**）；
 - 段落标题与段落可选翻译（`translate`，**默认关**）；后端可选 `llm` / `google` / `baidu`（凭证请求时传入）；
+- 可选切换底层区域 OCR 的 vLLM（`ocr_engine`，**默认 `glm`**）：版面仍用 PP-DocLayoutV3 + GlmOcr SDK，仅把 OCR 后端切到 `:18080/glm-ocr` 或 `:18081/PaddleOCR-VL-1.6`；
 - 转换 / 翻译结果写回 Markdown，并分别落盘到 `figure_texts/`、`translations/`。
 
 提供给外部调用方的接口说明见 [API_USAGE.md](API_USAGE.md)（含网关地址与 curl / Python 示例）。
@@ -25,20 +26,20 @@ http://127.0.0.1:18094
 | 默认端口 | `18091` | `18094`（避开 task-queue `18092`、paddle `18093`） |
 | 输出目录 | `result/glm_ocr/framework` | `result/glm_ocr/framework_v3` |
 | Layout 后处理 | 无 | `imgs/` → VL 文本 / Caption |
-| 请求参数 | `image_mode` | 另增 `enrich_figures`（默认 `true`）、`translate`（默认 `false`）、`translate_provider`、`google_api_key` |
+| 请求参数 | `image_mode` | 另增 `enrich_figures`（默认 `true`）、`translate`（默认 `false`）、`translate_provider`、`ocr_engine`（默认 `glm`）、翻译凭证等 |
 
 队列分流、文件类型、OSS 异步接口与 v2 相同。
 
 ## 处理流程
 
 1. 按 v2 规则进入 `pdf_layout` / `image_layout` / `model_only` 队列；
-2. Layout 任务：PP-DocLayoutV3 + GLM-OCR，保存 Markdown / `imgs/` / `layout_vis/`；
+2. Layout 任务：PP-DocLayoutV3 + GlmOcr SDK；区域 OCR 的 vLLM 由 `ocr_engine` 决定（`glm`→`:18080`，`paddle`→`:18081`），保存 Markdown / `imgs/` / `layout_vis/`；
 3. 若 `enrich_figures=true`（且为 layout 模式）：对每个 `imgs/*` 再调 VL；
 4. 用转换文本替换 Markdown 中的图片引用；未引用的图追加到 `## Converted Figures`；
 5. 若 `translate=true`：对段落标题 / 段落翻译（`llm`/`google`/`baidu`；跳过 Mermaid / 代码块）；
 6. 返回完整 `text` 与产物列表。
 
-`model_only` 不走 Layout，因此不会触发 figure enrichment / translation。
+`model_only` 不走 Layout，因此不会触发 figure enrichment / translation；其直连 vLLM 同样受 `ocr_engine` 影响。
 
 ## 1. 健康检查
 
@@ -62,6 +63,13 @@ curl -s http://127.0.0.1:18094/health | python -m json.tool
     "default_provider": "llm",
     "providers": ["llm", "google", "baidu"],
     "target_language": "Simplified Chinese"
+  },
+  "ocr": {
+    "default_engine": "glm",
+    "engines": {
+      "glm": {"vllm_model": "glm-ocr", "vllm_url": "http://127.0.0.1:18080/v1/chat/completions"},
+      "paddle": {"vllm_model": "PaddleOCR-VL-1.6", "vllm_url": "http://127.0.0.1:18081/v1/chat/completions"}
+    }
   }
 }
 ```
@@ -77,9 +85,11 @@ Content-Type: multipart/form-data
 |---|---|---:|---|---|
 | `file` | Form | 是 | — | PDF 或图片 |
 | `image_mode` | Query | 否 | `auto` | `auto` / `layout` / `model_only` |
+| `ocr_engine` | Query | 否 | `glm` | `glm` / `paddle`；只切换底层 OCR vLLM，版面流程不变 |
 | `enrich_figures` | Query | 否 | `true` | Layout 任务是否对 `imgs/` 做二次 VL |
 | `translate` | Query | 否 | `false` | Layout 任务是否翻译段落标题 / 段落 |
 | `translate_provider` | Query | 否 | `llm` | `llm` / `google` / `baidu` |
+| `translate_model` | Query | 否 | YAML `default_llm` | `llm` 时选 `translation.models` 键 |
 | `google_api_key` | Form | 条件 | — | `provider=google` 时必填（不落盘） |
 | `baidu_app_id` / `baidu_secret_key` | Form | 条件 | — | `provider=baidu` 时必填 |
 | `baidu_api_key` | Form | 条件 | — | 可选 `appid:secret` |
@@ -87,6 +97,14 @@ Content-Type: multipart/form-data
 ```bash
 curl -X POST \
   'http://127.0.0.1:18094/parse?image_mode=layout&enrich_figures=true' \
+  -F 'file=@/path/to/document.pdf'
+```
+
+底层 OCR 切到 PaddleOCR-VL（需 `:18081` vLLM 已启动；**不是** `:18093` 解析服务）：
+
+```bash
+curl -X POST \
+  'http://127.0.0.1:18094/parse?ocr_engine=paddle&enrich_figures=true' \
   -F 'file=@/path/to/document.pdf'
 ```
 
@@ -169,8 +187,10 @@ result/glm_ocr/framework_v3/<uuid>/
 ## VL 转换策略
 
 Layout 裁剪出的 `imgs/` 默认交给 **Qwen3.5-9B**（`figure_enrichment.vllm_*`），
-用 `mermaid_clinical` prompt 生成 Mermaid flowchart。正文 OCR / Layout 仍使用
-**glm-ocr**（`vllm.*`）。
+用 `mermaid_clinical` prompt 生成 Mermaid flowchart。版面检测仍用 **PP-DocLayoutV3**；
+区域 OCR 默认 **glm-ocr**（`vllm.*` / `:18080`），可用 `ocr_engine=paddle` 切到
+**PaddleOCR-VL-1.6**（`ocr.engines.paddle` / `:18081`，SDK 配置见
+`config/glm_ocr_paddle_vllm.yaml`）。
 
 | 区域类型 | 输出形式 |
 |---|---|
@@ -212,6 +232,10 @@ code/glm_ocr/logs/glm_ocr_v3_service.log
 |---|---|---|
 | `service.port` | `18094` | 服务端口 |
 | `service.output_root` | `result/glm_ocr/framework_v3` | UUID 输出根目录 |
+| `ocr.default_engine` | `glm` | 默认 OCR vLLM：`glm` / `paddle` |
+| `ocr.engines.paddle.sdk_config` | `config/glm_ocr_paddle_vllm.yaml` | paddle 时 GlmOcr SDK 配置（仅 `ocr_api` 指向 `:18081`） |
+| `ocr.engines.paddle.vllm_url` | `http://127.0.0.1:18081/v1/chat/completions` | paddle model_only 直连地址 |
+| `ocr.engines.paddle.vllm_model` | `PaddleOCR-VL-1.6` | paddle served-model-name |
 | `figure_enrichment.enabled` | `true` | 全局开关 |
 | `figure_enrichment.vllm_url` | `http://127.0.0.1:18003/v1` | flowchart→Mermaid 专用 VL（本机 Qwen） |
 | `figure_enrichment.vllm_model` | `qwen3.5-9b` | flowchart VL 模型名 |
