@@ -817,10 +817,20 @@ def translate_segments(
             protected, formulas = _protect_math_spans(
                 seg.source, prefix=f"{seg.index}_single"
             )
+            try:
+                translated_text = _restore_math_spans(caller(protected), formulas)
+            except ValueError as exc:
+                # Keep the identifier strategy as the primary path. If the
+                # model still damages a math marker, retry only this segment
+                # with formulas omitted from the model input.
+                logger.warning(
+                    "Math marker damaged for segment %s; retrying with immutable math: %s",
+                    seg.index,
+                    exc,
+                )
+                translated_text = _translate_with_immutable_math(seg.source, caller)
             translated = _fix_heading_marker(
-                seg.source,
-                _restore_math_spans(caller(protected), formulas),
-                kind=seg.kind,
+                seg.source, translated_text, kind=seg.kind
             )
             seg.translated = translated
         except Exception as exc:  # noqa: BLE001
@@ -855,11 +865,21 @@ def translate_segments(
             missing: list[TranslateSegment] = []
             for seg in batch:
                 if seg.index in mapping and mapping[seg.index].strip():
-                    seg.translated = _fix_heading_marker(
-                        seg.source,
-                        _restore_math_spans(mapping[seg.index], formula_maps[seg.index]),
-                        kind=seg.kind,
-                    )
+                    try:
+                        seg.translated = _fix_heading_marker(
+                            seg.source,
+                            _restore_math_spans(
+                                mapping[seg.index], formula_maps[seg.index]
+                            ),
+                            kind=seg.kind,
+                        )
+                    except ValueError as exc:
+                        logger.warning(
+                            "Math marker damaged in packed segment %s; retrying individually: %s",
+                            seg.index,
+                            exc,
+                        )
+                        missing.append(seg)
                 else:
                     missing.append(seg)
             for seg in missing:
