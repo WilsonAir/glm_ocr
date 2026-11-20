@@ -7,7 +7,7 @@ REPOSITORY_ROOT="$(cd "${PROJECT_ROOT}/../.." && pwd)"
 ENV_FILE="${GLM_OCR_V4_ENV_FILE:-${SCRIPT_DIR}/config.env}"
 [[ -f "$ENV_FILE" ]] && { set -a; source "$ENV_FILE"; set +a; }
 
-PYTHON="${GLM_OCR_V4_PYTHON:-${GLM_OCR_V4_CONDA_BASE:-/data/wilson_2/soft/miniforge3}/envs/${GLM_OCR_V4_CONDA_ENV:-med_rag_cuda}/bin/python}"
+PYTHON="${GLM_OCR_V4_PYTHON:-${GLM_OCR_V4_CONDA_BASE:-/data/wilson_2/conda}/envs/${GLM_OCR_V4_CONDA_ENV:-med_rag_cuda}/bin/python}"
 SERVICE_CONFIG="${GLM_OCR_V4_SERVICE_CONFIG:-${PROJECT_ROOT}/config/ocr_services_v4.yaml}"
 SDK_CONFIG="${GLM_OCR_V4_CONFIG:-${PROJECT_ROOT}/config/glm_ocr_v4_zh.yaml}"
 HOST="${GLM_OCR_V4_HOST:-127.0.0.1}"
