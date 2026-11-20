@@ -341,6 +341,22 @@ pipeline = PaddleOCRVL(
 
 ## OCR 对比分析
 
+## GLM-OCR v4：OCR 直出中文
+
+V4 在 OCR 模型请求阶段直接要求英文医学文本输出简体中文，不启用 v3 的翻译
+后处理，也不调用 Google / 百度翻译。默认服务端口为 `18095`：
+
+```bash
+cd code/glm_ocr
+bash deploy/glm-ocr-v4/start.sh
+curl -X POST http://127.0.0.1:18095/parse \
+  -F 'file=@/path/to/document.pdf'
+```
+
+配置见 [`code/glm_ocr/config/ocr_services_v4.yaml`](code/glm_ocr/config/ocr_services_v4.yaml)。
+V4 默认使用 GLM-OCR 引擎；公式、数字、单位、药品名、基因名和医学缩写由提示词
+要求保持准确。直接中文效果取决于 OCR 模型对翻译指令的遵循程度。
+
 ```bash
 /opt/ac2/bin/python3 scripts/compare_ocr.py
 ```

@@ -1,0 +1,46 @@
+# GLM-OCR v4: OCR model directly outputs Simplified Chinese.
+service:
+  name: glm-ocr-queued-parse-v4-zh
+  host: 127.0.0.1
+  port: 18095
+  sdk_config: code/glm_ocr/config/glm_ocr_v4_zh.yaml
+  layout_device: cuda:1
+  output_root: result/glm_ocr/framework_v4_zh
+
+queues:
+  pdf_layout: {capacity: 4, workers: 2}
+  image_layout: {capacity: 8, workers: 1}
+  model_only: {capacity: 8, workers: 4}
+
+vllm:
+  url: http://127.0.0.1:18080/v1/chat/completions
+  model: glm-ocr
+  timeout: 300
+  max_tokens: 4096
+
+ocr:
+  default_prompt_profile: zh_direct
+  prompt_profiles:
+    zh_direct: >-
+      请识别图片中的文字并直接输出简体中文。英文医学文本请在本次 OCR 中
+      直接翻译成准确、自然的简体中文，只输出结果，不要解释或输出英文原文。
+  default_engine: glm
+  engines:
+    glm:
+      sdk_config: null
+    paddle:
+      sdk_config: code/glm_ocr/config/glm_ocr_paddle_vllm.yaml
+      vllm_url: http://127.0.0.1:18081/v1/chat/completions
+      vllm_model: PaddleOCR-VL-1.6
+
+# V4 不运行段落翻译后处理，也不请求 Google/百度翻译。
+translation:
+  enabled: false
+
+figure_enrichment:
+  enabled: false
+
+layout:
+  device: cuda:1
+  physical_device: 1
+  parser_instances: {pdf: 2, image: 1}

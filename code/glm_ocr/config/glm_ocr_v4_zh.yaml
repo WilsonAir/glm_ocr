@@ -1,0 +1,93 @@
+# GLM-OCR SDK config for V4 direct Chinese output.
+# OCR regions are asked to translate English medical text into Simplified Chinese
+# in the same model call; no translation service is used afterwards.
+
+logging:
+  level: WARNING
+
+pipeline:
+  maas:
+    enabled: false
+  max_workers: 4
+  ocr_api:
+    api_host: 127.0.0.1
+    api_port: 18080
+    model: glm-ocr
+    api_mode: openai
+    api_path: /v1/chat/completions
+    verify_ssl: false
+    connect_timeout: 30
+    request_timeout: 300
+    max_workers: 4
+  page_loader:
+    max_tokens: 4096
+    pdf_dpi: 200
+    pdf_max_pages: null
+    task_prompt_mapping:
+      text: >-
+        请识别图片中的文字并直接输出简体中文。英文医学文本请在本次 OCR
+        中直接翻译成准确、自然的简体中文；不要输出英文原文、解释或推理。
+        保持原有段落、标题、列表和 Markdown 结构；药品名、基因名、缩写、
+        数字、单位、剂量和医学代码保持准确。
+      table: >-
+        请识别表格并直接输出简体中文 Markdown 表格。英文医学内容请在本次
+        OCR 中直接翻译为简体中文；保持行列关系、数字、单位、药品名、基因名
+        和医学缩写准确，不要输出解释。
+      formula: "Formula Recognition:"
+  result_formatter:
+    output_format: markdown
+    label_visualization_mapping:
+      table: [table]
+      formula: [display_formula, inline_formula]
+      image: [chart, image]
+      text:
+        - abstract
+        - algorithm
+        - content
+        - doc_title
+        - figure_title
+        - paragraph_title
+        - reference_content
+        - text
+        - vertical_text
+        - vision_footnote
+        - seal
+        - formula_number
+  layout:
+    model_dir: /data/wilson_2/de/models/PaddlePaddle/PP-DocLayoutV3_safetensors
+    batch_size: 1
+    workers: 1
+    cuda_visible_devices: "1"
+    device: cuda:1
+    label_task_mapping:
+      text: [abstract, algorithm, content, doc_title, figure_title, paragraph_title, reference_content, text, vertical_text, vision_footnote, seal, formula_number]
+      table: [table]
+      formula: [display_formula, inline_formula]
+      skip: [chart, image]
+      abandon: [header, footer, number, footnote, aside_text, reference, footer_image, header_image]
+    id2label:
+      0: abstract
+      1: algorithm
+      2: aside_text
+      3: chart
+      4: content
+      5: display_formula
+      6: doc_title
+      7: figure_title
+      8: footer
+      9: footer_image
+      10: footnote
+      11: formula_number
+      12: header
+      13: header_image
+      14: image
+      15: inline_formula
+      16: number
+      17: paragraph_title
+      18: reference
+      19: reference_content
+      20: seal
+      21: table
+      22: text
+      23: vertical_text
+      24: vision_footnote

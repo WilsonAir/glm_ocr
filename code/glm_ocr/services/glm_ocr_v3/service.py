@@ -121,6 +121,7 @@ _ocr_default_engine: Literal["glm", "paddle"] = "glm"
 _paddle_sdk_config_path = GLM_OCR_ROOT / "config" / "glm_ocr_paddle_vllm.yaml"
 _paddle_vllm_url = "http://127.0.0.1:18081/v1/chat/completions"
 _paddle_vllm_model = "PaddleOCR-VL-1.6"
+_service_name = "glm-ocr-queued-parse-v3"
 _oss_endpoint = ""
 _oss_access_key_id = ""
 _oss_access_key_secret = ""
@@ -1030,7 +1031,7 @@ async def health() -> dict[str, Any]:
     return {
         "status": "ok",
         "model": "glm-ocr",
-        "service": "glm-ocr-queued-parse-v3",
+        "service": _service_name,
         "output_root": str(_output_root.resolve()),
         "figure_enrichment": {
             "enabled": _figure_enrichment_enabled,
@@ -1497,7 +1498,7 @@ def main() -> None:
     global _translation_merge_small_para_chars
     global _ocr_default_prompt_profile, _ocr_prompt_profiles
     global _ocr_default_engine, _paddle_sdk_config_path
-    global _paddle_vllm_url, _paddle_vllm_model
+    global _paddle_vllm_url, _paddle_vllm_model, _service_name
     global _oss_endpoint, _oss_access_key_id, _oss_access_key_secret
     global _oss_bucket_name, _oss_prefix, _oss_signed_url_expires
     service_config_path = Path(args.service_config).expanduser().resolve()
@@ -1505,6 +1506,9 @@ def main() -> None:
         raise FileNotFoundError(f"GLM-OCR v3 service config not found: {service_config_path}")
     service_config = yaml.safe_load(service_config_path.read_text(encoding="utf-8")) or {}
     service = service_config.get("service", {})
+    _service_name = str(service.get("name", "glm-ocr-queued-parse-v3")).strip()
+    if not _service_name:
+        _service_name = "glm-ocr-queued-parse-v3"
     queues = service_config.get("queues", {})
     vllm = service_config.get("vllm", {})
     figure_cfg = service_config.get("figure_enrichment", {})
