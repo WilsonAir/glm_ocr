@@ -54,8 +54,10 @@ The source is OCR Markdown from oncology guidelines, case notes, or similar.
 # Hunyuan Hy-MT style short prompt (EN→ZH). Keep separate from the medical
 # Qwen template above. Marker line supports packed multi-segment batches.
 HY_MT_EN2ZH_PROMPT = (
-    "将以下文本翻译成中文,注意只需要输出翻译后的结果,不要额外解释。"
-    "若文本含 <<<OCR_SEG_ID_n>>> 标记，请原样保留标记，只翻译标记之间的内容:\n\n"
+    "将以下文本准确翻译成简体中文，注意只输出翻译结果，不要额外解释。"
+    "必须保持原文结构、换行和标记位置不变。"
+    "若文本含 <<<OCR_SEG_ID_n>>> 或 <<<MATH_n_m>>> 标记，必须保留完全相同的标记数量、"
+    "顺序和字符内容，绝对不能翻译、删除、转义、改写或在标记内部加空格；只翻译标记之外的文字。\n\n"
 )
 
 TRANSLATE_PROMPT_PROFILES: dict[str, str] = {
@@ -91,7 +93,9 @@ SEG_MARK_RE = re.compile(
 SEG_MARK_FMT = "<<<OCR_SEG_ID_{idx}>>>"
 PACK_HEADER = (
     "Keep every <<<OCR_SEG_ID_n>>> marker exactly, unchanged, on its own line, "
-    "in the same order. Translate only the text between markers.\n\n"
+    "in the same order. Keep every <<<MATH_n_m>>> marker exactly unchanged, "
+    "with the same count and order. Never translate, remove, escape, or rewrite "
+    "any marker. Translate only visible text outside markers.\n\n"
 )
 
 GOOGLE_TRANSLATE_URL = "https://translation.googleapis.com/language/translate/v2"
@@ -810,9 +814,12 @@ def translate_segments(
 
     def run_one(seg: TranslateSegment) -> TranslateSegment:
         try:
+            protected, formulas = _protect_math_spans(
+                seg.source, prefix=f"{seg.index}_single"
+            )
             translated = _fix_heading_marker(
                 seg.source,
-                _translate_with_immutable_math(seg.source, caller),
+                _restore_math_spans(caller(protected), formulas),
                 kind=seg.kind,
             )
             seg.translated = translated
@@ -825,12 +832,6 @@ def translate_segments(
     def run_batch(batch: list[TranslateSegment]) -> None:
         if len(batch) == 1:
             run_one(batch[0])
-            return
-        # Do not pack math-bearing segments: translate their prose fragments
-        # separately and splice the exact original formulas back in run_one().
-        if any(MATH_SPAN_RE.search(seg.source) for seg in batch):
-            for seg in batch:
-                run_one(seg)
             return
         protected_sources: dict[int, str] = {}
         formula_maps: dict[int, dict[str, str]] = {}
