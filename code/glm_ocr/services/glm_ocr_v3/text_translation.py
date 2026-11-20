@@ -45,6 +45,8 @@ The source is OCR Markdown from oncology guidelines, case notes, or similar.
 8. If the source contains markers like <<<OCR_SEG_ID_0>>>, keep every marker EXACTLY
    as-is, in the same order, on its own line. Translate only the text between markers.
    Do not add, remove, renumber, or translate the markers themselves.
+9. Keep placeholders like <<<MATH_0_0>>> EXACTLY unchanged; do not translate,
+   remove, or reformat them.
 
 ## Source text
 """
@@ -154,6 +156,17 @@ def resolve_baidu_language_code(language: str) -> str:
 
 # Blocks that must not be sent to the translator as free prose.
 FENCE_RE = re.compile(r"(```[\s\S]*?```)", re.MULTILINE)
+# Math is protected with ASCII placeholders before any LLM/API call. Prompt-only
+# protection is insufficient because translation models may rewrite LaTeX tokens.
+MATH_SPAN_RE = re.compile(
+    r"(?:"
+    r"\$\$[\s\S]*?\$\$|"
+    r"\\\[[\s\S]*?\\\]|"
+    r"\\\([\s\S]*?\\\)|"
+    r"\\begin\{([A-Za-z*]+)\}[\s\S]*?\\end\{\1\}|"
+    r"(?<!\\)(?<!\$)\$(?!\$)[^\n$]+?(?<!\\)\$(?!\$)"
+    r")"
+)
 HEADING_OR_PARA_RE = re.compile(
     r"(?P<head>^#{1,6}[ \t]+.+$)|"
     r"(?P<para>^(?!#{1,6}\s|!\[[^\]]*\]\([^)]+\)|\s*\|)(?!\s*$).+(?:\n(?!#{1,6}\s|```|\s*\|).+)*)",
@@ -178,6 +191,34 @@ def build_translate_prompt(
 ) -> str:
     header = prompt_template.replace("<<TARGET_LANGUAGE>>", target_language)
     return f"{header}{text.strip()}\n"
+
+
+def _protect_math_spans(text: str, *, prefix: str) -> tuple[str, dict[str, str]]:
+    """Replace LaTeX/math spans with stable ASCII placeholders."""
+    formulas: dict[str, str] = {}
+
+    def replace(match: re.Match[str]) -> str:
+        token = f"<<<MATH_{prefix}_{len(formulas)}>>>"
+        formulas[token] = match.group(0)
+        return token
+
+    return MATH_SPAN_RE.sub(replace, text), formulas
+
+
+def _restore_math_spans(text: str, formulas: dict[str, str]) -> str:
+    """Restore formulas and reject model output that damaged placeholders."""
+    if not formulas:
+        return text
+    missing = [token for token in formulas if token not in text]
+    if missing:
+        raise ValueError(
+            "Translation model altered or removed math placeholders: "
+            + ", ".join(missing[:5])
+        )
+    restored = text
+    for token, formula in formulas.items():
+        restored = restored.replace(token, formula)
+    return restored
 
 
 def call_vllm_translate(
@@ -559,12 +600,17 @@ def _fix_heading_marker(source: str, translated: str, *, kind: str) -> str:
     return text
 
 
-def pack_segments_with_markers(segments: list[TranslateSegment]) -> str:
+def pack_segments_with_markers(
+    segments: list[TranslateSegment],
+    *,
+    source_overrides: dict[int, str] | None = None,
+) -> str:
     """Join segments with stable delimiters for a single translator call."""
     parts: list[str] = [PACK_HEADER.rstrip(), ""]
     for seg in segments:
         parts.append(SEG_MARK_FMT.format(idx=seg.index))
-        parts.append(seg.source.rstrip("\n"))
+        source = (source_overrides or {}).get(seg.index, seg.source)
+        parts.append(source.rstrip("\n"))
         parts.append("")  # blank line between blocks
     return "\n".join(parts).rstrip() + "\n"
 
@@ -733,8 +779,13 @@ def translate_segments(
 
     def run_one(seg: TranslateSegment) -> TranslateSegment:
         try:
+            protected, formulas = _protect_math_spans(
+                seg.source, prefix=f"{seg.index}_single"
+            )
             translated = _fix_heading_marker(
-                seg.source, caller(seg.source), kind=seg.kind
+                seg.source,
+                _restore_math_spans(caller(protected), formulas),
+                kind=seg.kind,
             )
             seg.translated = translated
         except Exception as exc:  # noqa: BLE001
@@ -747,7 +798,13 @@ def translate_segments(
         if len(batch) == 1:
             run_one(batch[0])
             return
-        packed = pack_segments_with_markers(batch)
+        protected_sources: dict[int, str] = {}
+        formula_maps: dict[int, dict[str, str]] = {}
+        for seg in batch:
+            protected_sources[seg.index], formula_maps[seg.index] = _protect_math_spans(
+                seg.source, prefix=f"{seg.index}_batch"
+            )
+        packed = pack_segments_with_markers(batch, source_overrides=protected_sources)
         try:
             raw = caller(packed)
             mapping = unpack_segments_with_markers(raw, batch)
@@ -764,7 +821,9 @@ def translate_segments(
             for seg in batch:
                 if seg.index in mapping and mapping[seg.index].strip():
                     seg.translated = _fix_heading_marker(
-                        seg.source, mapping[seg.index], kind=seg.kind
+                        seg.source,
+                        _restore_math_spans(mapping[seg.index], formula_maps[seg.index]),
+                        kind=seg.kind,
                     )
                 else:
                     missing.append(seg)

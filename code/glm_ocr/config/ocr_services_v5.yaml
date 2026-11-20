@@ -1,0 +1,61 @@
+# GLM-OCR v5: local LLM translation with lossless math protection.
+service:
+  name: glm-ocr-queued-parse-v5
+  host: 127.0.0.1
+  port: 18096
+  sdk_config: code/glm_ocr/config/glm_ocr.yaml
+  layout_device: cuda:1
+  output_root: result/glm_ocr/framework_v5
+
+queues:
+  pdf_layout: {capacity: 4, workers: 2}
+  image_layout: {capacity: 8, workers: 1}
+  model_only: {capacity: 8, workers: 4}
+
+vllm:
+  url: http://127.0.0.1:18080/v1/chat/completions
+  model: glm-ocr
+  timeout: 300
+  max_tokens: 4096
+
+ocr:
+  default_prompt_profile: en
+  prompt_profiles:
+    en: "Text Recognition:"
+  default_engine: glm
+  engines:
+    glm: {sdk_config: null}
+    paddle:
+      sdk_config: code/glm_ocr/config/glm_ocr_paddle_vllm.yaml
+      vllm_url: http://127.0.0.1:18081/v1/chat/completions
+      vllm_model: PaddleOCR-VL-1.6
+
+figure_enrichment:
+  enabled: false
+
+translation:
+  enabled: true
+  default_provider: llm
+  default_llm: qwen3.5-9b
+  target_language: Simplified Chinese
+  source_language: en
+  max_workers: 8
+  timeout: 300
+  max_tokens: 4096
+  max_segments: 2000
+  merge_segments: true
+  merge_max_chars: 3500
+  merge_small_para_chars: 1200
+  models:
+    qwen3.5-9b:
+      vllm_url: http://127.0.0.1:18003/v1
+      vllm_model: qwen3.5-9b
+      max_tokens: 4096
+      temperature: 0.0
+      chat_template_kwargs:
+        enable_thinking: false
+
+layout:
+  device: cuda:1
+  physical_device: 1
+  parser_instances: {pdf: 2, image: 1}
