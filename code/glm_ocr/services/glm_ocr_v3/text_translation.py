@@ -221,6 +221,37 @@ def _restore_math_spans(text: str, formulas: dict[str, str]) -> str:
     return restored
 
 
+def _translate_with_immutable_math(text: str, caller: Callable[[str], str]) -> str:
+    """Translate prose fragments while never sending math spans to the model."""
+    matches = list(MATH_SPAN_RE.finditer(text))
+    if not matches:
+        return caller(text)
+
+    pieces: list[str] = []
+    cursor = 0
+    for match in matches:
+        prose = text[cursor:match.start()]
+        if prose.strip():
+            leading = prose[: len(prose) - len(prose.lstrip())]
+            trailing = prose[len(prose.rstrip()):]
+            core = prose[len(leading): len(prose) - len(trailing) if trailing else None]
+            pieces.append(leading + caller(core).strip() + trailing)
+        else:
+            pieces.append(prose)
+        # The original formula is never included in the translation request.
+        pieces.append(match.group(0))
+        cursor = match.end()
+    tail = text[cursor:]
+    if tail.strip():
+        leading = tail[: len(tail) - len(tail.lstrip())]
+        trailing = tail[len(tail.rstrip()):]
+        core = tail[len(leading): len(tail) - len(trailing) if trailing else None]
+        pieces.append(leading + caller(core).strip() + trailing)
+    else:
+        pieces.append(tail)
+    return "".join(pieces)
+
+
 def call_vllm_translate(
     text: str,
     *,
@@ -779,12 +810,9 @@ def translate_segments(
 
     def run_one(seg: TranslateSegment) -> TranslateSegment:
         try:
-            protected, formulas = _protect_math_spans(
-                seg.source, prefix=f"{seg.index}_single"
-            )
             translated = _fix_heading_marker(
                 seg.source,
-                _restore_math_spans(caller(protected), formulas),
+                _translate_with_immutable_math(seg.source, caller),
                 kind=seg.kind,
             )
             seg.translated = translated
@@ -797,6 +825,12 @@ def translate_segments(
     def run_batch(batch: list[TranslateSegment]) -> None:
         if len(batch) == 1:
             run_one(batch[0])
+            return
+        # Do not pack math-bearing segments: translate their prose fragments
+        # separately and splice the exact original formulas back in run_one().
+        if any(MATH_SPAN_RE.search(seg.source) for seg in batch):
+            for seg in batch:
+                run_one(seg)
             return
         protected_sources: dict[int, str] = {}
         formula_maps: dict[int, dict[str, str]] = {}
