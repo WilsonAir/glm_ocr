@@ -12,9 +12,15 @@ GPU="${PADDLE_OCR_VLLM_DEVICE:-1}"
 PORT="${PADDLE_OCR_VLLM_PORT:-18081}"
 HOST="${OCR_VLLM_HOST:-0.0.0.0}"
 MODEL="${PADDLE_OCR_MODEL_PATH:-/data/wilson_2/de/models/PaddlePaddle/PaddleOCR-VL-1___6}"
-MODEL_NAME="${GLM_OCR_VLLM_MODEL_NAME:-paddle-ocr}"
-GPU_MEM="${OCR_VLLM_GPU_MEMORY_UTILIZATION:-0.3}"
-MAX_LEN="${OCR_VLLM_MAX_MODEL_LEN:-8192}"
+MODEL_NAME="${PADDLE_OCR_VLLM_MODEL_NAME:-PaddleOCR-VL-1.6}"
+DTYPE="${PADDLE_OCR_VLLM_DTYPE:-bfloat16}"
+GPU_MEM="${PADDLE_OCR_GPU_MEMORY_UTILIZATION:-0.90}"
+MAX_LEN="${PADDLE_OCR_MAX_MODEL_LEN:-16384}"
+MAX_NUM_SEQS="${PADDLE_OCR_MAX_NUM_SEQS:-16}"
+MAX_NUM_BATCHED_TOKENS="${PADDLE_OCR_MAX_NUM_BATCHED_TOKENS:-32768}"
+MM_PROCESSOR_CACHE_GB="${PADDLE_OCR_MM_PROCESSOR_CACHE_GB:-2}"
+MEDIA_PATH="${PADDLE_OCR_ALLOWED_LOCAL_MEDIA_PATH:-/data/wilson_2/de}"
+PREFIX_CACHING="${PADDLE_OCR_ENABLE_PREFIX_CACHING:-false}"
 LOG_DIR="${OCR_VLLM_LOG_DIR:-${PROJECT_ROOT}/logs}"
 LOG_FILE="${GLM_OCR_VLLM_LOG_FILE:-${LOG_DIR}/paddle_ocr_vllm.log}"
 PID_FILE="${GLM_OCR_VLLM_PID_FILE:-${LOG_DIR}/paddle_ocr_vllm.pid}"
@@ -38,9 +44,16 @@ fi
 running && die "already running: PID $(cat "$PID_FILE")"
 mkdir -p "$LOG_DIR"
 cmd=("$VLLM_BIN" serve "$MODEL" --served-model-name "$MODEL_NAME"
-  --host "$HOST" --port "$PORT" --allowed-local-media-path /
-  --gpu-memory-utilization "$GPU_MEM" --max-model-len "$MAX_LEN"
+  --host "$HOST" --port "$PORT" --allowed-local-media-path "$MEDIA_PATH"
+  --dtype "$DTYPE" --gpu-memory-utilization "$GPU_MEM"
+  --max-model-len "$MAX_LEN" --max-num-seqs "$MAX_NUM_SEQS"
+  --max-num-batched-tokens "$MAX_NUM_BATCHED_TOKENS"
+  --mm-processor-cache-gb "$MM_PROCESSOR_CACHE_GB"
   --trust-remote-code)
+
+if [[ "$PREFIX_CACHING" != true ]]; then
+  cmd+=(--no-enable-prefix-caching)
+fi
 
 if [[ "${1:-}" == --foreground ]]; then
   exec env CUDA_VISIBLE_DEVICES="$GPU" "${cmd[@]}"

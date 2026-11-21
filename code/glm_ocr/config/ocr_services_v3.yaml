@@ -39,18 +39,12 @@ ocr:
   default_prompt_profile: en
   prompt_profiles:
     en: "Text Recognition:"
-  # 版面流程不变（GlmOcr + PP-DocLayout）；仅切换底层区域 OCR 的 vLLM。
-  # glm → :18080 / glm-ocr；paddle → :18081 / PaddleOCR-VL-1.6
-  # 请求参数 ocr_engine 可覆盖；默认 glm。
+  # v3 当前仅启用 GLM-OCR；Paddle 模式待完整接入 PaddleX 后处理后再恢复。
   default_engine: glm
   engines:
     glm:
       # 使用上方 vllm + service.sdk_config
       sdk_config: null
-    paddle:
-      sdk_config: code/glm_ocr/config/glm_ocr_paddle_vllm.yaml
-      vllm_url: http://127.0.0.1:18081/v1/chat/completions
-      vllm_model: PaddleOCR-VL-1.6
 
 # Layout 完成后，对 imgs/ 中的 chart/image 裁剪再调一次 VL，生成 Mermaid。
 # 流程图专用模型：Qwen3.5-9B（与正文 OCR 的 glm-ocr 分离）。

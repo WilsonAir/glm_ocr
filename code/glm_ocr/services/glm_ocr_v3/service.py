@@ -117,10 +117,7 @@ _translation_fallback_vllm_url = ""
 _translation_fallback_vllm_model = ""
 _ocr_default_prompt_profile = "en"
 _ocr_prompt_profiles: dict[str, str] = {"en": "Text Recognition:"}
-_ocr_default_engine: Literal["glm", "paddle"] = "glm"
-_paddle_sdk_config_path = GLM_OCR_ROOT / "config" / "glm_ocr_paddle_vllm.yaml"
-_paddle_vllm_url = "http://127.0.0.1:18081/v1/chat/completions"
-_paddle_vllm_model = "PaddleOCR-VL-1.6"
+_ocr_default_engine: Literal["glm"] = "glm"
 _service_name = "glm-ocr-queued-parse-v3"
 _oss_endpoint = ""
 _oss_access_key_id = ""
@@ -159,11 +156,11 @@ class QueueJob:
     baidu_secret_key: str | None = None
     baidu_api_key: str | None = None
     ocr_prompt_profile: str | None = None
-    ocr_engine: Literal["glm", "paddle"] = "glm"
+    ocr_engine: Literal["glm"] = "glm"
     future: asyncio.Future[dict[str, Any]] | None = None
 
 
-def _get_parser(parser_key: str, *, ocr_engine: Literal["glm", "paddle"] = "glm") -> Any:
+def _get_parser(parser_key: str, *, ocr_engine: Literal["glm"] = "glm") -> Any:
     """Lazily construct one official SDK parser per worker + OCR vLLM backend."""
     cache_key = f"{parser_key}:{ocr_engine}"
     parser = _layout_parsers.get(cache_key)
@@ -177,10 +174,7 @@ def _get_parser(parser_key: str, *, ocr_engine: Literal["glm", "paddle"] = "glm"
 
         from glmocr import GlmOcr
 
-        if ocr_engine == "paddle":
-            config_path = _paddle_sdk_config_path.expanduser().resolve()
-        else:
-            config_path = _parser_config_path.expanduser().resolve()
+        config_path = _parser_config_path.expanduser().resolve()
         if not config_path.is_file():
             raise FileNotFoundError(f"GLM-OCR config not found: {config_path}")
 
@@ -382,22 +376,22 @@ def _should_enrich_figures(job: QueueJob) -> bool:
     return bool(_figure_enrichment_enabled and job.enrich_figures and job.mode == "layout")
 
 
-def _normalize_ocr_engine(engine: str | None) -> Literal["glm", "paddle"]:
+def _normalize_ocr_engine(engine: str | None) -> Literal["glm"]:
     key = (engine or _ocr_default_engine or "glm").strip().lower()
     if key not in {"glm", "paddle"}:
         raise HTTPException(
             status_code=400,
             detail="ocr_engine must be 'glm' or 'paddle'",
         )
-    return key  # type: ignore[return-value]
+    if key == "paddle":
+        logger.info("ocr_engine=paddle is a compatibility alias; routing to GLM-OCR")
+    return "glm"
 
 
 def _resolve_model_only_vllm(
-    ocr_engine: Literal["glm", "paddle"],
+    ocr_engine: Literal["glm"],
 ) -> tuple[str, str]:
     """Return (vllm_url, model) for model_only path."""
-    if ocr_engine == "paddle":
-        return _paddle_vllm_url, _paddle_vllm_model
     return _vllm_url, _vllm_model
 
 
@@ -424,7 +418,11 @@ def _normalize_translate_model(translate_model: str | None) -> str | None:
     return str(translate_model).strip()
 
 
-def _resolve_ocr_prompt(profile: str | None) -> tuple[str, str]:
+def _resolve_ocr_prompt(
+    profile: str | None,
+    *,
+    engine: Literal["glm"] = "glm",
+) -> tuple[str, str]:
     """Return (profile_key, prompt_text) for model_only OCR."""
     key = (profile or _ocr_default_prompt_profile or "en").strip() or "en"
     if key not in _ocr_prompt_profiles:
@@ -433,7 +431,8 @@ def _resolve_ocr_prompt(profile: str | None) -> tuple[str, str]:
             status_code=400,
             detail=f"Unknown ocr_prompt_profile {key!r}; known: {known}",
         )
-    return key, _ocr_prompt_profiles[key]
+    prompt = _ocr_prompt_profiles[key]
+    return key, prompt
 
 
 def _resolve_translation_llm(translate_model: str | None) -> dict[str, Any]:
@@ -642,7 +641,9 @@ def _run_model_only_job(job: QueueJob) -> dict[str, Any]:
         raise RuntimeError("Model-only job has no file data")
     job_dir = _safe_job_dir(job.job_id)
     started = time.perf_counter()
-    profile_key, ocr_prompt = _resolve_ocr_prompt(job.ocr_prompt_profile)
+    profile_key, ocr_prompt = _resolve_ocr_prompt(
+        job.ocr_prompt_profile, engine=job.ocr_engine
+    )
     _update_metadata(
         job_dir,
         status="running",
@@ -1080,11 +1081,6 @@ async def health() -> dict[str, Any]:
                     "vllm_url": _vllm_url,
                     "vllm_model": _vllm_model,
                 },
-                "paddle": {
-                    "sdk_config": str(_paddle_sdk_config_path),
-                    "vllm_url": _paddle_vllm_url,
-                    "vllm_model": _paddle_vllm_model,
-                },
             },
         },
         "queues": {
@@ -1172,8 +1168,7 @@ async def parse_document(
     ocr_engine: Literal["glm", "paddle"] | None = Query(
         None,
         description=(
-            "OCR vLLM backend behind the same GlmOcr layout pipeline: "
-            "glm (:18080/glm-ocr) | paddle (:18081/PaddleOCR-VL-1.6)"
+            "OCR backend selector; paddle is a compatibility alias for glm (:18080/glm-ocr)"
         ),
     ),
     google_api_key: str | None = Form(
@@ -1237,8 +1232,7 @@ async def parse_image(
     ocr_engine: Literal["glm", "paddle"] | None = Query(
         None,
         description=(
-            "OCR vLLM backend behind the same GlmOcr layout pipeline: "
-            "glm (:18080/glm-ocr) | paddle (:18081/PaddleOCR-VL-1.6)"
+            "OCR backend selector; paddle is a compatibility alias for glm (:18080/glm-ocr)"
         ),
     ),
     google_api_key: str | None = Form(
@@ -1497,8 +1491,7 @@ def main() -> None:
     global _translation_merge_segments, _translation_merge_max_chars
     global _translation_merge_small_para_chars
     global _ocr_default_prompt_profile, _ocr_prompt_profiles
-    global _ocr_default_engine, _paddle_sdk_config_path
-    global _paddle_vllm_url, _paddle_vllm_model, _service_name
+    global _ocr_default_engine, _service_name
     global _oss_endpoint, _oss_access_key_id, _oss_access_key_secret
     global _oss_bucket_name, _oss_prefix, _oss_signed_url_expires
     service_config_path = Path(args.service_config).expanduser().resolve()
@@ -1683,28 +1676,9 @@ def main() -> None:
             f"prompt_profiles: {', '.join(sorted(_ocr_prompt_profiles))}"
         )
     engine_raw = str(ocr_cfg.get("default_engine", "glm")).strip().lower() or "glm"
-    if engine_raw not in {"glm", "paddle"}:
-        raise ValueError("ocr.default_engine must be 'glm' or 'paddle'")
-    _ocr_default_engine = engine_raw  # type: ignore[assignment]
-    engines_cfg = ocr_cfg.get("engines") or {}
-    paddle_engine = {}
-    if isinstance(engines_cfg, dict):
-        paddle_engine = engines_cfg.get("paddle") or {}
-    if not isinstance(paddle_engine, dict):
-        paddle_engine = {}
-    paddle_sdk = paddle_engine.get("sdk_config") or (
-        "code/glm_ocr/config/glm_ocr_paddle_vllm.yaml"
-    )
-    _paddle_sdk_config_path = config_path(str(paddle_sdk), _paddle_sdk_config_path)
-    _paddle_vllm_url = str(
-        paddle_engine.get(
-            "vllm_url",
-            "http://127.0.0.1:18081/v1/chat/completions",
-        )
-    ).strip()
-    _paddle_vllm_model = str(
-        paddle_engine.get("vllm_model", "PaddleOCR-VL-1.6")
-    ).strip() or "PaddleOCR-VL-1.6"
+    if engine_raw != "glm":
+        raise ValueError("Paddle OCR mode is disabled; ocr.default_engine must be 'glm'")
+    _ocr_default_engine = "glm"
 
     _oss_endpoint = os.environ.get("OSS_ENDPOINT", "")
     _oss_access_key_id = os.environ.get("OSS_ACCESS_KEY_ID", "")
@@ -1730,7 +1704,7 @@ def main() -> None:
     logger.info(
         "Starting GLM-OCR v3 on %s:%d (output=%s, figure_enrichment=%s, "
         "prompt_profile=%s, fallback_profile=%s, figure_vl=%s/%s, "
-        "translation=%s/%s/%s default_llm=%s models=%s ocr_engine=%s paddle_vllm=%s/%s)",
+        "translation=%s/%s/%s default_llm=%s models=%s ocr_engine=%s)",
         host,
         port,
         _output_root,
@@ -1745,8 +1719,6 @@ def main() -> None:
         _translation_default_llm,
         ",".join(sorted(_translation_models)) or "(legacy-figure)",
         _ocr_default_engine,
-        _paddle_vllm_model,
-        _paddle_vllm_url,
     )
     uvicorn.run(app, host=host, port=port, log_level="info")
 

@@ -25,10 +25,8 @@ ocr:
   default_engine: glm
   engines:
     glm: {sdk_config: null}
-    paddle:
-      sdk_config: code/glm_ocr/config/glm_ocr_paddle_vllm.yaml
-      vllm_url: http://127.0.0.1:18081/v1/chat/completions
-      vllm_model: PaddleOCR-VL-1.6
+  # paddle is accepted only as a compatibility request alias and is routed
+  # to GLM-OCR by the shared v3 service implementation.
 
 figure_enrichment:
   enabled: false

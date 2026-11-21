@@ -28,6 +28,14 @@ pipeline:
     max_tokens: 2048
     pdf_dpi: 200
     pdf_max_pages: null
+    # PaddleOCR-VL has task-specific instruction tokens.  These are not the
+    # GLM-OCR prompts used by config/glm_ocr.yaml.
+    task_prompt_mapping:
+      text: "OCR:"
+      algorithm: "OCR:"
+      table: "Table Recognition:"
+      formula: "Formula Recognition:"
+      seal: "Seal Recognition:"
 
   result_formatter:
     output_format: markdown
@@ -42,7 +50,6 @@ pipeline:
         - image
       text:
         - abstract
-        - algorithm
         - content
         - doc_title
         - figure_title
@@ -51,8 +58,9 @@ pipeline:
         - text
         - vertical_text
         - vision_footnote
-        - seal
         - formula_number
+      seal:
+        - seal
 
   layout:
     model_dir: /data/wilson_2/de/models/PaddlePaddle/PP-DocLayoutV3_safetensors
