@@ -28,6 +28,16 @@ pipeline:
     max_tokens: 2048
     pdf_dpi: 200
     pdf_max_pages: null
+    task_prompt_mapping:
+      text: "Text Recognition:"
+      algorithm: >-
+        Extract all visible text from this algorithm or pseudocode region.
+        Output only the algorithm content, with no image description,
+        introduction, explanation, or conclusion. Preserve every variable
+        name, operator, number, equation, line order, indentation, and code
+        structure exactly. Return the algorithm as Markdown code only.
+      table: "Table Recognition:"
+      formula: "Formula Recognition:"
 
   result_formatter:
     output_format: markdown
@@ -63,7 +73,6 @@ pipeline:
     label_task_mapping:
       text:
         - abstract
-        - algorithm
         - content
         - doc_title
         - figure_title
@@ -74,6 +83,8 @@ pipeline:
         - vision_footnote
         - seal
         - formula_number
+      algorithm:
+        - algorithm
       table:
         - table
       formula:
