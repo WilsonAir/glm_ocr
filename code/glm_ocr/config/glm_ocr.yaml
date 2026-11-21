@@ -31,11 +31,15 @@ pipeline:
     task_prompt_mapping:
       text: "Text Recognition:"
       algorithm: >-
-        Extract all visible text from this algorithm or pseudocode region.
-        Output only the algorithm content, with no image description,
-        introduction, explanation, or conclusion. Preserve every variable
-        name, operator, number, equation, line order, indentation, and code
-        structure exactly. Return the algorithm as Markdown code only.
+        Transcribe every visible line from this algorithm or pseudocode region
+        exactly and completely. Include the algorithm title and number as the
+        first line when visible (for example, Algorithm 1 Training step).
+        Never summarize, describe the image, omit a title, omit a comment, or
+        add an introduction, explanation, or conclusion. Preserve every
+        variable name, operator, number, equation, line order, indentation,
+        and code structure exactly. Recheck commonly confused characters such
+        as lowercase l versus digit 1 and uppercase I, and zero versus O.
+        Return only the algorithm as Markdown code.
       table: "Table Recognition:"
       formula: "Formula Recognition:"
 
